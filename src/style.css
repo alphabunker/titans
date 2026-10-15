@@ -7,7 +7,7 @@ footer a{color:var(--muted);text-underline-offset:4px}.filter-title h3{margin-bo
 body{background:var(--bg)}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline-color:var(--accent)}
 header{background:linear-gradient(90deg,#0c0c11,var(--panel));border-bottom-color:var(--selected)}
-.network{color:#d9d9d9}.mark{border-color:var(--accent);color:var(--accent)}
+.network{color:#d9d9d9}.brand-logo{display:block;width:50px;height:50px;object-fit:contain;flex:0 0 auto}
 h1 em,.eyebrow,.text-button,.empty-number{color:var(--accent)}
 .seal{border-color:#3f3441;color:var(--accent);background:radial-gradient(circle,#272734,var(--panel) 70%);box-shadow:0 0 0 12px #0c0c11,0 0 0 13px #272734}
 .notice{border-color:var(--selected);background:var(--panel)}.notice strong{color:var(--accent)}.notice span{color:#d9d9d9}

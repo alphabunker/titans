@@ -34,11 +34,11 @@ Future integration must verify the collection policy ID and metadata source, pag
 ## Reference verification / outstanding inputs
 
 - https://mugello.io/collection-insights/ was not retrievable. No claim is made that this prototype reproduces its exact features or layout.
-- The authenticated inventory view at https://app.houseoftitans.io/inventory was inspected on 2026-10-14. The site now uses its verified dark backgrounds and purple accents; the typographic monogram, layout, and other brand assets remain provisional.
+- The authenticated inventory view at https://app.houseoftitans.io/inventory was inspected on 2026-10-14. The site now uses its verified dark backgrounds, purple accents, and official header logo; the layout and other brand assets remain provisional.
 - Confirmed collection: [House Of Titans on Wayup](https://www.wayup.io/collection/53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad), policy `53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad`. This is the Titans collection, not Strongholds.
 - Verified property names: Back, Background, Class, Eyes, Face, Hand, Head, House, Outfit, Skin, Special, Type, and Trait Count. Values were transcribed from the collection filters at cnft.tools on 2026-10-14. Exact source casing is retained, including `None` and `NONE`. The values are real vocabulary; every current item assignment and combination remains synthetic.
 - Trait Count is cataloged but not assigned or filterable until its calculation is verified against real metadata.
-- Official NFT imagery, logo, trait values, and screenshots of the authenticated reference are still needed for visual fidelity.
+- Official NFT imagery, trait values, and screenshots of the authenticated reference are still needed for visual fidelity.
 
 ## Validation limits
 
