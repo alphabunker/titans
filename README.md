@@ -1,6 +1,6 @@
 # House of Titans · Collection Insights
 
-A dependency-free, responsive collection explorer prototype. All 24 NFTs, traits, and geometric artwork are **fictional samples**, not real Cardano assets, wallet holdings, prices, or rarity rankings.
+A dependency-free, responsive collection explorer prototype. All 24 NFTs, trait values, and geometric artwork are **fictional samples**, not real Cardano assets, wallet holdings, prices, or rarity rankings.
 
 ## Preview
 
@@ -35,8 +35,9 @@ Future integration must verify the collection policy ID and metadata source, pag
 
 - https://mugello.io/collection-insights/ was not retrievable. No claim is made that this prototype reproduces its exact features or layout.
 - https://app.houseoftitans.io/ redirects to login. The current charcoal/copper theme and typographic monogram are provisional, not verified official branding.
-- The requested Wayup collection URL was absent from the handoff. The project does not assume Titans and Strongholds are the same collection. Demo palette and Demo emblem are explicitly invented placeholders; replace them only after the correct URL/metadata is confirmed.
-- Official NFT imagery, logo, trait taxonomy, and screenshots of the authenticated reference are still needed for visual fidelity.
+- Confirmed collection: [House Of Titans on Wayup](https://www.wayup.io/collection/53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad), policy `53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad`. This is the Titans collection, not Strongholds.
+- Verified property names: Back, Background, Class, Eyes, Face, Hand, Head, House, Outfit, Skin, Special, Type. Wayup also lists Trait count, reserved for derivation from real metadata. The retrieved page did not expose property values: every current value is explicitly Sample A/B/C, and all combinations remain fictional.
+- Official NFT imagery, logo, trait values, and screenshots of the authenticated reference are still needed for visual fidelity.
 
 ## Validation limits
 
