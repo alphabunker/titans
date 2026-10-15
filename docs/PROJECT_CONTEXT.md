@@ -32,5 +32,5 @@ Future metadata providers should return the existing normalized item shape. Wall
 ## Known reference limits
 
 - Mugello collection insights was not retrievable in the earlier environment, so exact feature parity is not claimed.
-- The House of Titans app redirected to login, so the charcoal/copper direction and typographic T are provisional.
+- The authenticated House of Titans inventory app was inspected on 2026-10-14. Its verified UI palette is now used: fallback `#0A0A0E`, app surface `#16161E`, light surface `#1F1F28`, selected/contrast surface `#272734`, hot purple `#AB8BAD`, and purple gradient endpoint `#A463A8`. The typographic T, layout, and other brand assets remain provisional.
 - Official artwork, logo assets, real token metadata, trait combinations, prices, rarity, and supply have not been integrated.
