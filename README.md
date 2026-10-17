@@ -37,6 +37,7 @@ The production foundation is documented in:
 - `docs/CANONICAL_DATA.md` — field provenance, normalization rules, invariants, and versioning
 - `docs/ENVIRONMENTS.md` — local/preview/production and secret boundaries
 - `docs/IMPORTER.md` — Koios ingestion, checkpoint, validation, and workflow behavior
+- `docs/STORAGE.md` — D1 schema, immutable R2 layout, activation, and recovery
 - `docs/SERVICES.md` — ownership, provisioning, costs, and replacement checklist
 - `docs/adr/` — accepted architecture decisions
 - `.env.example` — names of server-side configuration values, with no credentials

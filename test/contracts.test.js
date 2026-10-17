@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   COLLECTION_POLICY_ID,
   CONTRACT_VERSION,
+  CIP68_USER_LABEL_PREFIX,
   assertAnalyticsSnapshot,
   assertCanonicalAsset,
   assertCollectionSnapshot,
@@ -12,7 +13,7 @@ import {
   assertValidationReport,
 } from '../src/contracts.js';
 
-const rawAssetNameHex = Buffer.from('HouseOfTitans0597').toString('hex');
+const rawAssetNameHex = `${CIP68_USER_LABEL_PREFIX}${Buffer.from('HouseOfTitans0597').toString('hex')}`;
 const asset = {
   contractVersion: CONTRACT_VERSION,
   policyId: COLLECTION_POLICY_ID,

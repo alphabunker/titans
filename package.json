@@ -6,6 +6,6 @@
     "dev": "node scripts/serve.mjs",
     "import:collection": "node scripts/import-collection.mjs",
     "test": "node --test",
-    "check": "node --check scripts/import-collection.mjs && node --check src/app.js && node --check src/contracts.js && node --check src/data.js && node --check src/explorer.js && node --check src/importer.js && node --check src/metadata-normalizer.js && node --check src/providers/koios.js && node --check src/trait-catalog.js"
+    "check": "node --check scripts/import-collection.mjs && node --check src/app.js && node --check src/contracts.js && node --check src/data.js && node --check src/explorer.js && node --check src/importer.js && node --check src/metadata-normalizer.js && node --check src/providers/koios.js && node --check src/storage/d1-repository.js && node --check src/storage/r2-snapshot-store.js && node --check src/trait-catalog.js"
   }
 }

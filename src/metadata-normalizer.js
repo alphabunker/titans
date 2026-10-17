@@ -1,7 +1,13 @@
-import { COLLECTION_POLICY_ID, CONTRACT_VERSION, assertCanonicalAsset } from './contracts.js';
+import {
+  CIP68_REFERENCE_LABEL_PREFIX,
+  CIP68_USER_LABEL_PREFIX,
+  COLLECTION_POLICY_ID,
+  CONTRACT_VERSION,
+  assertCanonicalAsset,
+} from './contracts.js';
 
 export const NORMALIZATION_VERSION = '1.0.0';
-export const CIP67_LABEL_PREFIXES = Object.freeze({ 100: '000643b0', 222: '000de140' });
+export const CIP67_LABEL_PREFIXES = Object.freeze({ 100: CIP68_REFERENCE_LABEL_PREFIX, 222: CIP68_USER_LABEL_PREFIX });
 
 const RESERVED_METADATA_KEYS = new Set([
   'name', 'image', 'mediaType', 'description', 'website', 'files', 'attributes', 'traits', 'number',

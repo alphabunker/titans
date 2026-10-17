@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COLLECTION_POLICY_ID } from '../src/contracts.js';
+import { CIP68_REFERENCE_LABEL_PREFIX, CIP68_USER_LABEL_PREFIX, COLLECTION_POLICY_ID } from '../src/contracts.js';
 import { decodeAssetName, extractIpfsCid, normalizeCip68Asset, normalizeComparisonKey } from '../src/metadata-normalizer.js';
 
 const rawAssetName = 'HouseOfTitans0597';
-const rawAssetNameHex = Buffer.from(rawAssetName).toString('hex');
+const rawAssetNameHex = `${CIP68_USER_LABEL_PREFIX}${Buffer.from(rawAssetName).toString('hex')}`;
 const evidence = {
   assetId: `${COLLECTION_POLICY_ID}${rawAssetNameHex}`,
-  referenceAssetId: `${COLLECTION_POLICY_ID}${Buffer.from('ref0597').toString('hex')}`,
+  referenceAssetId: `${COLLECTION_POLICY_ID}${CIP68_REFERENCE_LABEL_PREFIX}${Buffer.from(rawAssetName).toString('hex')}`,
   rawAssetNameHex,
   cip68Label: 222,
   metadata: {
@@ -52,8 +52,9 @@ test('normalization preserves source casing while adding comparison keys', () =>
 test('normalization does not invent absent display metadata', () => {
   const minimal = normalizeCip68Asset({
     ...evidence,
-    rawAssetNameHex: Buffer.from('UnnumberedTitan').toString('hex'),
-    assetId: `${COLLECTION_POLICY_ID}${Buffer.from('UnnumberedTitan').toString('hex')}`,
+    rawAssetNameHex: `${CIP68_USER_LABEL_PREFIX}${Buffer.from('UnnumberedTitan').toString('hex')}`,
+    assetId: `${COLLECTION_POLICY_ID}${CIP68_USER_LABEL_PREFIX}${Buffer.from('UnnumberedTitan').toString('hex')}`,
+    referenceAssetId: null,
     metadata: {},
   });
   assert.equal(minimal.displayName, null);

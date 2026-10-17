@@ -1,6 +1,8 @@
 export const CONTRACT_VERSION = '1.0.0';
 export const COLLECTION_SIZE = 6500;
 export const COLLECTION_POLICY_ID = '53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad';
+export const CIP68_USER_LABEL_PREFIX = '000de140';
+export const CIP68_REFERENCE_LABEL_PREFIX = '000643b0';
 
 const isRecord = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const isString = value => typeof value === 'string' && value.length > 0;
@@ -47,8 +49,14 @@ export function assertCanonicalAsset(asset, path = 'asset') {
   requireCondition(asset.contractVersion === CONTRACT_VERSION, `${path}.contractVersion`, `must equal ${CONTRACT_VERSION}`);
   requireCondition(asset.policyId === COLLECTION_POLICY_ID, `${path}.policyId`, 'must match the verified collection policy');
   requireCondition(isAssetId(asset.assetId), `${path}.assetId`, 'must contain the verified policy plus a bounded even-length hexadecimal asset name');
+  requireCondition(asset.assetId === `${asset.policyId}${asset.rawAssetNameHex}`, `${path}.assetId`, 'must equal policyId plus rawAssetNameHex');
   requireCondition(asset.referenceAssetId === null || isAssetId(asset.referenceAssetId), `${path}.referenceAssetId`, 'must be null or a verified-policy hexadecimal asset ID');
   requireCondition(isHex(asset.rawAssetNameHex, asset.rawAssetNameHex?.length) && asset.rawAssetNameHex.length % 2 === 0, `${path}.rawAssetNameHex`, 'must be non-empty even-length hexadecimal');
+  requireCondition(asset.rawAssetNameHex.toLowerCase().startsWith(CIP68_USER_LABEL_PREFIX), `${path}.rawAssetNameHex`, 'must use the CIP-68 user-token label');
+  if (asset.referenceAssetId !== null) {
+    const expectedReference = `${asset.policyId}${CIP68_REFERENCE_LABEL_PREFIX}${asset.rawAssetNameHex.slice(8)}`;
+    requireCondition(asset.referenceAssetId === expectedReference, `${path}.referenceAssetId`, 'must identify the paired CIP-68 reference token');
+  }
   requireCondition(isNullableString(asset.rawAssetName), `${path}.rawAssetName`, 'must be null or a non-empty string');
   requireCondition(isNullableString(asset.displayName), `${path}.displayName`, 'must be null or a non-empty string');
   requireCondition(asset.number === null || (Number.isSafeInteger(asset.number) && asset.number > 0), `${path}.number`, 'must be null or a positive safe integer');
