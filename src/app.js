@@ -791,7 +791,7 @@ function renderPortfolio(session, portfolio) {
   fortressSession = { ...session, portfolio };
   const owner = analytics ? buildOwnerAnalytics(portfolio.assetIds, analytics) : null;
   const canonicalOwned = owner?.summary.titans ?? portfolio.assetIds.filter(assetId => items.some(item => item.id === assetId)).length;
-  $('#portfolio-source').textContent = session.kind === 'wallet' ? `${session.label.toUpperCase()} / CONNECTED WALLET` : 'MANUALLY ENTERED ADDRESS';
+  $('#portfolio-source').textContent = session.kind === 'wallet' ? `${session.label.toUpperCase()} · CONNECTED WALLET` : 'MANUALLY ENTERED ADDRESS';
   $('#portfolio-result-title').textContent = canonicalOwned ? 'Your gate is open' : 'The gate is open';
   $('#portfolio-count').textContent = canonicalOwned.toLocaleString();
   $('#portfolio-percentage').textContent = owner ? `${owner.summary.collectionPercentage.toFixed(owner.summary.percentagePrecision)}%` : `${((canonicalOwned / 6500) * 100).toFixed(2)}%`;
@@ -966,7 +966,7 @@ function renderTitansPyramid(owner, portfolio) {
   completed.append(el('strong', pyramid.completed.toLocaleString()), el('span', `${pyramid.completed === 1 ? 'complete pyramid' : 'complete pyramids'}`));
   const next = el('div', undefined, 'pyramid-next');
   next.append(
-    el('span', `NEXT ATTAINABLE / PYRAMID ${pyramid.nextTarget}`, 'eyebrow'),
+    el('span', `NEXT ATTAINABLE PYRAMID ${pyramid.nextTarget}`, 'eyebrow'),
     el('strong', `${pyramid.totalMissingForNext.toLocaleString()} ${pyramid.totalMissingForNext === 1 ? 'piece' : 'pieces'} remaining`),
     el('p', pyramid.totalMissingForNext === 0 ? 'The next pyramid is complete.' : 'Every shortage below is calculated against the next whole pyramid.'),
   );
