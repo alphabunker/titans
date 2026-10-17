@@ -5,7 +5,7 @@
 `Required checks` runs syntax checks, all unit/schema/normalization/analytics and
 accessibility-critical interaction tests, the production build, and a secret
 scan over Git history plus generated artifacts. Configure the `main` branch to
-require its `verify` job and at least one approving review before merge.
+require pull requests and its `verify` job before merge.
 
 `Deploy site` repeats those gates and deploys immutable build output:
 
@@ -23,7 +23,8 @@ Each GitHub environment supplies its own `CLOUDFLARE_API_TOKEN` secret plus
 be least privilege and must never be copied into workflow text or artifacts.
 
 The repository has `preview` and `production` GitHub environments. Preview
-contains only the non-production resource variables. Production accepts
+contains only the non-production resource variables and its least-privilege
+deployment token. Production accepts
 deployments from `main` only; production resource variables and credentials
 remain intentionally unset until those separate resources are approved and
 provisioned. Required reviewers should be added if the repository plan exposes
@@ -60,8 +61,8 @@ health plus both public data routes, and opens or updates one GitHub operator
 issue on failure. GitHub's failed-workflow notifications remain the ingestion
 and deployment alert channel.
 
-Cloudflare Web Analytics is enabled on the preview Pages project with no
-browser credential and becomes active on the next deployment. Confirm page
+Cloudflare Web Analytics is enabled and active on the preview Pages project
+with no browser credential. Confirm page
 views and Core Web Vitals in the Cloudflare dashboard after each launch.
 Cloudflare Workers Observability is available on the account free tier; the
 application logs only redacted server-side failures and never submitted wallet

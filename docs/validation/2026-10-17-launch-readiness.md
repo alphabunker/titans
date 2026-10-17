@@ -21,9 +21,16 @@ GitHub `preview` and `production` environments were created. Preview contains
 the non-production account, Pages, D1, and R2 variables. Production is limited
 to the `main` branch and intentionally contains no production resource values
 until separate production resources are approved. Cloudflare Web Analytics is
-enabled and takes effect on the next deployment. Workers metrics and the
+enabled and active; the deployed page includes its beacon. Workers metrics and the
 account-level Workers Observability event console are available on the free
 plan.
+
+The GitHub `preview` environment holds a least-privilege Cloudflare token with
+Pages, D1, and R2 write access plus account read access. The pull-request deploy
+workflow completed its verification and Pages deployment jobs successfully.
+The `main` branch rule requires pull requests and the `verify` status check,
+but GitHub reports that this private organization repository needs a Team or
+Enterprise plan before the rule is enforced.
 
 ## Full-dataset performance
 

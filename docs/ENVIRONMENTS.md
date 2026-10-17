@@ -12,11 +12,18 @@ Preview must not write production D1/R2 data or publish the production pointer. 
 
 The repository defines `preview` and `production` deployment jobs. Both GitHub
 environments exist. Preview is configured with the non-production Pages, D1,
-and R2 resource variables. Production has a `main`-only deployment branch rule;
+and R2 resource variables plus a least-privilege Cloudflare deployment token.
+Production has a `main`-only deployment branch rule;
 its resource variables and secrets remain unset until separate production
 resources are approved. Add a required reviewer if the repository plan exposes
 that protection rule. Workflow files name the environments, while repository
 settings own their reviewer and branch protections.
+
+The repository's `main` rule is configured to require pull requests and the
+GitHub Actions `verify` check. GitHub currently reports that enforcement on
+this private organization repository requires a Team or Enterprise plan; the
+rule remains configured but is not an enforceable launch gate on the current
+plan.
 
 ## Configuration classes
 

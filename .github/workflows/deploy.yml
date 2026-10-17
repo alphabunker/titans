@@ -50,6 +50,7 @@ jobs:
     timeout-minutes: 15
     environment: preview
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: deployable-site-${{ github.sha }}
@@ -69,6 +70,7 @@ jobs:
     timeout-minutes: 15
     environment: production
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: deployable-site-${{ github.sha }}
