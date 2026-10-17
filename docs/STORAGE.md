@@ -39,6 +39,20 @@ Snapshot artifacts are immutable. Each manifest records artifact byte size and S
 
 If step 7 fails, the public R2 pointer remains authoritative and the next reconciliation run repairs D1. Publication code must never update D1 active state before the R2 pointer succeeds.
 
+Prepare validated, resumable publication artifacts with:
+
+```sh
+npm run prepare:publication -- \
+  --input .data/full-bootstrap-ordered \
+  --output .data/publication
+```
+
+The ignored output contains idempotent `d1/canonical.sql`, a separate
+`d1/activate.sql`, and an R2 object tree. Apply canonical rows first, upload
+immutable R2 artifacts, upload `latest.json` last, and only then apply the D1
+activation file. Separating activation prevents a partial upload from
+becoming active in either store.
+
 ## Recovery
 
 - **Republish previous:** validate a retained pointer against its immutable manifest, archive the current pointer, and write the prior pointer to `latest.json`.
@@ -50,7 +64,7 @@ D1 exports must be written weekly and immediately before migrations once product
 Use Wrangler's supported export/import path for those retained copies:
 
 ```sh
-npx wrangler d1 export titans-metadata --remote --output exports/d1/<timestamp>.sql
+npx wrangler d1 export titans-metadata --remote --output exports/d1/<timestamp>.sql -y
 npx wrangler d1 execute titans-metadata --remote --file exports/d1/<timestamp>.sql
 ```
 
@@ -59,3 +73,17 @@ Before applying a migration, take the export first, then run
 verification, use the same migration command with `--local`. Cloudflare D1
 Time Travel is an additional recovery layer, not a replacement for the
 retained pre-migration export and the immutable R2 snapshot.
+
+### Preview resources
+
+The repository's `wrangler.jsonc` binds the preview publisher to:
+
+- D1 database `titans-metadata-preview` as `DB`;
+- private R2 bucket `titans-snapshots-preview` as `SNAPSHOTS`.
+
+Keep the bucket private. Public data delivery belongs to the API/worker story,
+not to the storage layer. The first publication has no older snapshot to roll
+back to. Starting with the second publication, pass the downloaded current
+pointer to `prepare:publication` with `--previous-pointer`; the preparer will
+retain it under `pointers/history/` and set `previousSnapshotId` in the new
+pointer.
