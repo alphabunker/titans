@@ -30,6 +30,7 @@ The real-metadata importer is server-side and requires provider configuration. S
 - Explicit loading, current, stale, partial, and unavailable snapshot states
 - Fixed 48-item result pages so all 6,500 records remain searchable without mounting thousands of cards or images
 - Read-only `/api/portfolio` lookup for validated mainnet stake/payment addresses, with private provider credentials, strict policy filtering, ephemeral caching, and rate limiting
+- The Fortress tab with equal CIP-30 wallet and manual-address entry paths, refresh/disconnect/clear controls, and explicit zero, partial, wrong-network, rejection, and provider-failure states
 - No runtime packages, remote fonts, trackers, browser credentials, or wallet transactions
 
 ## Structure and integration boundary
@@ -52,7 +53,7 @@ The production foundation is documented in:
 
 See `docs/PROJECT_CONTEXT.md` and `docs/TRAIT_CATALOG.md` for durable project and provenance notes.
 
-Do not put API secrets in browser code. Wallet connections are intentionally not implemented yet.
+Do not put API secrets in browser code. The wallet bridge requests only CIP-30 public-address access; it does not request signatures, transactions, private keys, or seed phrases.
 
 ## Reference verification / outstanding inputs
 
@@ -61,8 +62,8 @@ Do not put API secrets in browser code. Wallet connections are intentionally not
 - Confirmed collection: [House Of Titans on Wayup](https://www.wayup.io/collection/53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad), policy `53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad`. This is the Titans collection, not Strongholds.
 - Canonical metadata currently supplies 12 trait categories: Back, Background, Class, Eyes, Face, Hand, Head, House, Outfit, Skin, Special, and Type. Exact source casing is retained, including `None` and `NONE`.
 - Trait Count remains a historical taxonomy reference but is not assigned or filterable because it is absent from canonical metadata.
-- Names, NFT imagery, and trait values now come from the complete active snapshot. The server-side holdings boundary is available; wallet UI and owner-specific analytics remain future stories.
+- Names, NFT imagery, and trait values now come from the complete active snapshot. The Fortress entry and holdings lookup are available; owner-specific analytics remain future stories.
 
 ## Validation limits
 
-Automated checks cover JavaScript syntax, canonical/public contracts, pointer-version safety, filtering, counts, sorting, IPFS delivery, and complete-snapshot reconciliation. Browser QA should cover grid/table at mobile and desktop widths, pagination, filter intersections, saved state after reload, keyboard-only navigation, dialog focus/Escape, and empty/reset behavior.
+Automated checks cover JavaScript syntax, canonical/public contracts, pointer-version safety, filtering, counts, sorting, IPFS delivery, CIP-30 address conversion, Fortress portfolio states, and complete-snapshot reconciliation. Browser QA should cover grid/table and Fortress entry at mobile and desktop widths, pagination, filter intersections, saved state after reload, keyboard-only navigation, dialog focus/Escape, wallet rejection, manual address lookup, and empty/reset behavior.

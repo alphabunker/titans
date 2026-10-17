@@ -27,6 +27,11 @@ function expandHrp(hrp) {
     .concat(0, [...hrp].map(character => character.charCodeAt(0) & 31));
 }
 
+function createChecksum(hrp, values) {
+  const checksum = polymod([...expandHrp(hrp), ...values, 0, 0, 0, 0, 0, 0]) ^ 1;
+  return Array.from({ length: 6 }, (_, index) => (checksum >>> (5 * (5 - index))) & 31);
+}
+
 function convertBits(values, fromBits, toBits, pad) {
   let accumulator = 0;
   let bitCount = 0;
@@ -81,4 +86,26 @@ export function parseCardanoAddress(value, { network = 'mainnet' } = {}) {
     throw new CardanoAddressError('wrong_network', 'Only Cardano mainnet addresses are supported');
   }
   return Object.freeze({ address: decoded.normalized, kind, network: 'mainnet' });
+}
+
+export function encodeCardanoAddress(bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.length === 0) {
+    throw new CardanoAddressError('invalid_address', 'Wallet returned an invalid address');
+  }
+  const addressType = bytes[0] >>> 4;
+  const networkId = bytes[0] & 15;
+  if (networkId !== 1) throw new CardanoAddressError('wrong_network', 'Only Cardano mainnet addresses are supported');
+  const kind = addressType === 14 || addressType === 15 ? 'stake' : addressType >= 0 && addressType <= 7 ? 'payment' : null;
+  if (!kind) throw new CardanoAddressError('invalid_address', 'Wallet returned an unsupported Cardano address type');
+  const hrp = kind === 'stake' ? 'stake' : 'addr';
+  const values = convertBits([...bytes], 8, 5, true);
+  const encoded = `${hrp}1${[...values, ...createChecksum(hrp, values)].map(value => CHARSET[value]).join('')}`;
+  return parseCardanoAddress(encoded).address;
+}
+
+export function cardanoAddressFromHex(value) {
+  if (typeof value !== 'string' || value.length < 2 || value.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(value)) {
+    throw new CardanoAddressError('invalid_address', 'Wallet returned an invalid hexadecimal address');
+  }
+  return encodeCardanoAddress(Uint8Array.from(value.match(/.{2}/g).map(byte => Number.parseInt(byte, 16))));
 }

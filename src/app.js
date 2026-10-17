@@ -1,5 +1,6 @@
 import { publicCollectionProvider, snapshotItems } from './data.js';
 import { collectionSummary, explore, traitOptionCounts } from './explorer.js';
+import { connectCip30Wallet, listCip30Wallets, lookupPortfolio } from './fortress-entry.js';
 import { createTitanImage, readMediaConfig, resolveIpfsImageUrl } from './media.js';
 
 const $ = selector => document.querySelector(selector);
@@ -9,6 +10,8 @@ const mediaConfig = readMediaConfig();
 let items = [];
 let snapshot = null;
 let traitCounts = {};
+let fortressSession = null;
+let discoveredWallets = [];
 const state = {
   query: '', traits: {}, favorites: [], favoritesOnly: false, sort: 'asc', view: 'grid', page: 0,
 };
@@ -273,6 +276,148 @@ async function initialize() {
   }
 }
 
+function activateView() {
+  const view = location.hash === '#fortress' ? 'fortress' : 'collection';
+  $('#collection-page').hidden = view !== 'collection';
+  $('#fortress-page').hidden = view !== 'fortress';
+  document.querySelectorAll('[data-view-link]').forEach(link => {
+    if (link.dataset.viewLink === view) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+  document.title = view === 'fortress' ? 'The Fortress · House of Titans' : 'House of Titans · Collection Insights';
+  if (view === 'fortress') renderWallets();
+}
+
+function setFortressBusy(busy) {
+  for (const control of document.querySelectorAll('#fortress-page button, #fortress-page textarea')) control.disabled = busy;
+  $('#fortress-page').classList.toggle('is-busy', busy);
+  $('#fortress-page').setAttribute('aria-busy', String(busy));
+}
+
+function showFortressStatus(title, message, tone = 'info') {
+  const root = $('#fortress-status');
+  root.className = `fortress-status is-${tone}`;
+  root.replaceChildren(el('strong', title), el('span', message));
+  root.hidden = false;
+}
+
+function hideFortressStatus() {
+  $('#fortress-status').hidden = true;
+}
+
+function renderWallets() {
+  discoveredWallets = listCip30Wallets();
+  const root = $('#wallet-list');
+  root.replaceChildren();
+  if (!discoveredWallets.length) {
+    const empty = el('div', undefined, 'wallet-empty');
+    empty.append(el('strong', 'No CIP-30 wallet detected'), el('span', 'Install or unlock a compatible Cardano wallet, then check again.'));
+    root.append(empty);
+    return;
+  }
+  for (const wallet of discoveredWallets) {
+    const button = el('button', undefined, 'wallet-option');
+    button.type = 'button';
+    if (wallet.icon) {
+      const icon = document.createElement('img');
+      icon.src = wallet.icon;
+      icon.width = 30;
+      icon.height = 30;
+      icon.alt = '';
+      button.append(icon);
+    } else {
+      button.append(el('span', wallet.name.slice(0, 1).toUpperCase(), 'wallet-letter'));
+    }
+    const label = el('span');
+    label.append(el('strong', wallet.name), el('small', 'Connect read-only'));
+    button.append(label, el('b', '→'));
+    button.onclick = () => beginWalletSession(wallet);
+    root.append(button);
+  }
+}
+
+function errorTitle(code) {
+  return ({
+    invalid_address: 'ADDRESS NOT VALID',
+    wrong_network: 'CARDANO MAINNET REQUIRED',
+    unsupported_wallet: 'NO SUPPORTED WALLET',
+    wallet_access_rejected: 'WALLET ACCESS DECLINED',
+    wallet_no_address: 'NO ACCOUNT ADDRESS',
+    wallet_unavailable: 'WALLET UNAVAILABLE',
+    rate_limited: 'TOO MANY LOOKUPS',
+    upstream_timeout: 'PROVIDER TIMED OUT',
+    upstream_unavailable: 'HOLDINGS UNAVAILABLE',
+    network_error: 'SERVICE UNREACHABLE',
+  })[code] || 'PORTFOLIO UNAVAILABLE';
+}
+
+function renderPortfolio(session, portfolio) {
+  fortressSession = { ...session, portfolio };
+  $('#portfolio-source').textContent = session.kind === 'wallet' ? `${session.label.toUpperCase()} / CONNECTED WALLET` : 'MANUALLY ENTERED ADDRESS';
+  $('#portfolio-result-title').textContent = portfolio.assetIds.length ? 'Your gate is open' : 'The gate is open';
+  $('#portfolio-count').textContent = portfolio.assetIds.length.toLocaleString();
+  $('#portfolio-state').textContent = portfolio.status === 'partial' ? 'Partial' : 'Complete';
+  $('#portfolio-checked').textContent = formatDate(portfolio.retrievedAt);
+  $('#clear-portfolio').textContent = session.kind === 'wallet' ? 'Disconnect' : 'Clear';
+  const message = $('#portfolio-message');
+  message.className = `portfolio-message ${portfolio.status === 'partial' ? 'is-partial' : portfolio.assetIds.length ? 'has-titans' : 'is-empty'}`;
+  message.replaceChildren(
+    el('strong', portfolio.status === 'partial' ? 'Partial holdings returned' : portfolio.assetIds.length ? `${portfolio.assetIds.length.toLocaleString()} verified ${portfolio.assetIds.length === 1 ? 'Titan' : 'Titans'} found` : 'No Titans found'),
+    el('span', portfolio.status === 'partial'
+      ? 'Some account addresses could not be checked. Refresh before relying on this count.'
+      : portfolio.assetIds.length
+        ? 'The verified asset IDs are ready for the owner insights that follow in The Fortress.'
+        : 'This address has no current holdings under the verified House of Titans policy.'),
+  );
+  $('#portfolio-result').hidden = false;
+  if (portfolio.status === 'partial') showFortressStatus('PARTIAL RESULT', 'Some holdings were resolved, but the provider could not complete every address batch.', 'warning');
+  else hideFortressStatus();
+  $('#portfolio-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function resolveFortressSession(session) {
+  setFortressBusy(true);
+  showFortressStatus('CHECKING HOLDINGS', 'Resolving current House of Titans assets from Cardano…', 'loading');
+  try {
+    const portfolio = await lookupPortfolio(session.address);
+    renderPortfolio(session, portfolio);
+  } catch (error) {
+    showFortressStatus(errorTitle(error.code), error.message || 'The portfolio could not be resolved.', 'error');
+  } finally {
+    setFortressBusy(false);
+  }
+}
+
+async function beginWalletSession(wallet) {
+  setFortressBusy(true);
+  showFortressStatus('WAITING FOR WALLET', `Approve read-only address access in ${wallet.name}. No signature or transaction will be requested.`, 'loading');
+  try {
+    const connection = await connectCip30Wallet(wallet);
+    await resolveFortressSession({ kind: 'wallet', address: connection.address, label: connection.walletName, wallet });
+  } catch (error) {
+    showFortressStatus(errorTitle(error.code), error.message || 'The wallet could not be connected.', 'error');
+  } finally {
+    setFortressBusy(false);
+  }
+}
+
+function clearFortressSession() {
+  fortressSession = null;
+  $('#portfolio-result').hidden = true;
+  $('#address-form').reset();
+  hideFortressStatus();
+  $('#fortress-entry-title').focus({ preventScroll: true });
+}
+
+async function refreshFortressSession() {
+  if (!fortressSession) return;
+  if (fortressSession.kind === 'wallet') {
+    await beginWalletSession(fortressSession.wallet);
+    return;
+  }
+  await resolveFortressSession({ kind: 'address', address: fortressSession.address, label: 'Address' });
+}
+
 $('#search').oninput = event => { state.query = event.target.value; state.page = 0; render(); };
 $('#sort').onchange = event => { state.sort = event.target.value; state.page = 0; render(); };
 $('#favorites-only').onchange = event => { state.favoritesOnly = event.target.checked; state.page = 0; render(); };
@@ -288,4 +433,20 @@ for (const view of ['grid', 'table']) {
 $('#close-detail').onclick = () => $('#detail').close();
 $('#detail').onclick = event => { if (event.target === $('#detail')) $('#detail').close(); };
 
+$('#address-form').onsubmit = async event => {
+  event.preventDefault();
+  const address = $('#portfolio-address').value.trim();
+  if (!address) {
+    showFortressStatus('ADDRESS REQUIRED', 'Enter a Cardano mainnet stake or payment address.', 'error');
+    $('#portfolio-address').focus();
+    return;
+  }
+  await resolveFortressSession({ kind: 'address', address, label: 'Address' });
+};
+$('#scan-wallets').onclick = renderWallets;
+$('#refresh-portfolio').onclick = refreshFortressSession;
+$('#clear-portfolio').onclick = clearFortressSession;
+window.addEventListener('hashchange', activateView);
+
 await initialize();
+activateView();

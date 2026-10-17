@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname, sep, join } from 'node:path';
+import { handlePortfolioRequest } from '../functions/api/portfolio.js';
 import { toPublicCollectionSnapshot } from '../src/public-snapshot.js';
 const root = resolve(import.meta.dirname, '..');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
@@ -23,6 +24,17 @@ http.createServer(async (req, res) => {
   if (pathname === '/api/collection') {
    const body = JSON.stringify(await localPublicSnapshot());
    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' }).end(body);
+   return;
+  }
+  if (pathname === '/api/portfolio') {
+   if (req.method !== 'POST') { res.writeHead(405, { Allow: 'POST' }).end(); return; }
+   const chunks = [];
+   for await (const chunk of req) chunks.push(chunk);
+   const request = new Request(`http://localhost:${port}/api/portfolio`, {
+    method: 'POST', headers: req.headers, body: Buffer.concat(chunks),
+   });
+   const response = await handlePortfolioRequest({ request });
+   res.writeHead(response.status, Object.fromEntries(response.headers)).end(Buffer.from(await response.arrayBuffer()));
    return;
   }
   const file = resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));

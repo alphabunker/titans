@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-This repository contains a dependency-free Cardano NFT collection explorer for **House Of Titans**. The preview environment serves the complete validated collection from private R2 through a same-origin Cloudflare Pages Function. A separate read-only same-origin portfolio route resolves ephemeral Titan holdings; The Fortress UI remains a later Epic #3 story.
+This repository contains a dependency-free Cardano NFT collection explorer for **House Of Titans**. The preview environment serves the complete validated collection from private R2 through a same-origin Cloudflare Pages Function. The Fortress provides equal read-only CIP-30 wallet and manual-address paths over the separate ephemeral portfolio route; owner analytics remain later Epic #3 stories.
 
 - Repository: `alphabunker/titans`
 - Default branch: `main`
@@ -26,6 +26,7 @@ The active public snapshot contains all 6,500 canonical CIP-68 records. Names, n
 - `functions/api/portfolio.js`: validated, rate-limited, non-persistent holdings route
 - `src/cardano-address.js`: dependency-free Bech32, address-type, and mainnet validation
 - `src/portfolio.js`: provider-independent public portfolio projection
+- `src/fortress-entry.js`: CIP-30 discovery, read-only address access, and shared browser portfolio lookup
 - `src/public-snapshot.js`: compact public collection contract and projection
 - `src/data.js`: validated same-origin public snapshot provider
 - `src/contracts.js`: executable canonical data, analytics, portfolio, and provider boundaries
@@ -39,4 +40,4 @@ The accepted production system and service decisions are documented in `docs/ARC
 
 - Mugello collection insights was not retrievable in the earlier environment, so exact feature parity is not claimed.
 - The authenticated House of Titans inventory app was inspected on 2026-10-14. Its verified UI palette is now used: fallback `#0A0A0E`, app surface `#16161E`, light surface `#1F1F28`, selected/contrast surface `#272734`, hot purple `#AB8BAD`, and purple gradient endpoint `#A463A8`. The live app's transparent `favicon/64x64.png` is now used for the header logo; the layout and other brand assets remain provisional.
-- Official NFT imagery, real token metadata, and the read-only holdings service are integrated. Prices, marketplace listings, wallet connection UI, and ownership proof are not.
+- Official NFT imagery, real token metadata, the read-only holdings service, and The Fortress entry UI are integrated. Prices, marketplace listings, transactions, access gating, and ownership proof are not.

@@ -60,3 +60,17 @@ least one failed. The endpoint distinguishes `invalid_address`,
 The boundary is intentionally read-only. It does not authenticate a visitor,
 connect a wallet, request a signature, submit a transaction, or establish
 ownership.
+
+## Browser entry paths
+
+The Fortress sends both manual and wallet-derived addresses through this same
+endpoint and consumes the same canonical response contract. Manual input is
+kept only in the current page session. For an installed CIP-30 wallet, the
+browser requests public account-address access with `enable()`, verifies
+mainnet with `getNetworkId()`, and prefers a reward address before falling back
+to used, unused, or change addresses. CIP-30 hexadecimal address bytes are
+converted to validated Bech32 before lookup.
+
+The browser never calls signing or transaction methods. Disconnect and clear
+remove the in-memory session and rendered holdings; they do not claim to revoke
+permissions managed by the wallet extension itself.
