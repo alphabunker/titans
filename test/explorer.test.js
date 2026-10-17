@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { explore, traitOptions } from '../src/explorer.js';
+import { collectionSummary, explore, traitOptions } from '../src/explorer.js';
 import { sampleItems } from '../src/data.js';
 import { filterTraitCatalog, traitCatalog, traitCategories } from '../src/trait-catalog.js';
 test('search, trait selection and favorites intersect', () => {
@@ -11,6 +11,11 @@ test('search, trait selection and favorites intersect', () => {
 });
 test('descending sort does not mutate provider records', () => { assert.equal(explore(sampleItems, { sort: 'desc' })[0].number, 24); assert.equal(sampleItems[0].number, 1); });
 test('trait options derive from metadata, not fixed UI fields', () => { assert.deepEqual(traitOptions([{ traits: { New: 'B' } }, { traits: { New: 'A' } }]), { New: ['A', 'B'] }); });
+
+test('collection summary reports Titan share and represented classes', () => {
+ assert.deepEqual(collectionSummary(sampleItems), { titans: 24, percentage: '0.37%', classes: 6 });
+ assert.equal(collectionSummary(Array.from({ length: 35 }, () => ({ traits: { Class: 'Titan' } }))).percentage, '0.54%');
+});
 
 test('sample records use verified vocabulary in explicitly synthetic combinations', () => {
  assert.equal(Object.keys(sampleItems[0].traits).length, 12);

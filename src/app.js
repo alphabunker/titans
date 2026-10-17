@@ -1,6 +1,6 @@
 import { sampleCollectionProvider } from './data.js';
-import { explore } from './explorer.js';
-import { filterTraitCatalog, traitCatalog } from './trait-catalog.js';
+import { collectionSummary, explore } from './explorer.js';
+import { filterTraitCatalog } from './trait-catalog.js';
 
 const $ = selector => document.querySelector(selector);
 const items = await sampleCollectionProvider.getItems();
@@ -160,8 +160,10 @@ for (const [key, values] of Object.entries(filterTraitCatalog)) {
   $('#filters').append(label);
 }
 
-$('#total').textContent = items.length;
-$('#taxonomy-total').textContent = Object.keys(traitCatalog).length;
+const summary = collectionSummary(items);
+$('#total').textContent = summary.titans;
+$('#collection-percentage').textContent = summary.percentage;
+$('#class-total').textContent = summary.classes;
 $('#search').oninput = event => { state.query = event.target.value; render(); };
 $('#sort').onchange = event => { state.sort = event.target.value; render(); };
 $('#favorites-only').onchange = event => { state.favoritesOnly = event.target.checked; render(); };
