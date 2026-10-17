@@ -28,9 +28,17 @@ The local checkpoint stores canonical collection records and therefore may be la
 
 ## GitHub Actions
 
-`.github/workflows/metadata-import.yml` supports manual dispatch and runs daily at 07:17 UTC. It validates code first, executes one import with low concurrency, emits the GitHub step summary, and retains candidate/report artifacts for 14 days. It does not publish production data.
+`.github/workflows/metadata-import.yml` supports manual preview/production
+dispatch and runs daily at 07:17 UTC through the protected production
+environment. It validates code first, executes one import with low concurrency,
+emits the GitHub step summary, retains candidate/report artifacts for 14 days,
+exports D1, uploads immutable R2 objects, activates `latest.json` last, and then
+reconciles the D1 active pointer.
 
-Configure `KOIOS_API_TOKEN` in the protected `preview` GitHub Environment. Production publication credentials are intentionally not used by this workflow yet.
+Configure separate Koios and Cloudflare credentials plus resource variables in
+the `preview` and `production` GitHub Environments. Production is restricted to
+`main`; add an environment reviewer when supported by the repository plan. See
+`docs/OPERATIONS.md`.
 
 ## Provider evidence
 

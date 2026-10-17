@@ -25,7 +25,9 @@ test('portfolio endpoint caches successful lookups only in ephemeral memory', as
 
 test('portfolio endpoint distinguishes invalid, wrong-network, timeout, outage, and partial states', async () => {
   const allow = () => ({ allowed: true, remaining: 29, resetAt: clock().getTime() + 60_000 });
-  const invoke = (address, provider) => handlePortfolioRequest({ request: request(address), provider, cache: new Map(), rateLimit: allow, now: clock });
+  const events = [];
+  const logger = { warn: (...values) => events.push(values) };
+  const invoke = (address, provider) => handlePortfolioRequest({ request: request(address), provider, cache: new Map(), rateLimit: allow, now: clock, logger });
   const invalid = await invoke('not-an-address', { fetchAddressAssets: async () => ({ assetIds: [], partial: false }) });
   assert.equal((await invalid.json()).error.code, 'invalid_address');
   const wrongNetwork = await invoke('addr_test1qq2jt0qpqz2z2z9zx5w4xemekkce7yderz53kjue53lpqv90lkfa9sgrfjuz6uvt4uqtrqhl2kj0a9lnr9ndzutx32gqu0yc6n', { fetchAddressAssets: async () => ({ assetIds: [], partial: false }) });
@@ -38,6 +40,11 @@ test('portfolio endpoint distinguishes invalid, wrong-network, timeout, outage, 
   const partial = await invoke(stakeAddress, { fetchAddressAssets: async () => ({ assetIds: [], partial: true }) });
   assert.equal(partial.status, 206);
   assert.equal((await partial.json()).status, 'partial');
+  assert.deepEqual(events, [
+    ['Portfolio provider failure', { code: 'upstream_timeout' }],
+    ['Portfolio provider failure', { code: 'upstream_unavailable' }],
+  ]);
+  assert.equal(JSON.stringify(events).includes(stakeAddress), false);
 });
 
 test('rate limiter resets its ephemeral bucket and rejects excess traffic', () => {

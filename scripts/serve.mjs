@@ -2,6 +2,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname, sep, join } from 'node:path';
 import { handlePortfolioRequest } from '../functions/api/portfolio.js';
+import { buildHealthReport } from '../functions/api/health.js';
 import { toPublicCollectionSnapshot } from '../src/public-snapshot.js';
 const root = resolve(import.meta.dirname, '..');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
@@ -27,6 +28,15 @@ async function localAnalytics() {
  return JSON.parse(await readFile(join(localR2, analyticsKey), 'utf8'));
 }
 
+const localBucket = {
+ async get(key) {
+  try {
+   const body = await readFile(join(localR2, key), 'utf8');
+   return { async text() { return body; } };
+  } catch { return null; }
+ },
+};
+
 http.createServer(async (req, res) => {
  try {
   const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
@@ -38,6 +48,11 @@ http.createServer(async (req, res) => {
   if (pathname === '/api/analytics') {
    const body = JSON.stringify(await localAnalytics());
    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' }).end(body);
+   return;
+  }
+  if (pathname === '/api/health') {
+   const report = await buildHealthReport(localBucket);
+   res.writeHead(report.status === 'healthy' ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' }).end(JSON.stringify(report));
    return;
   }
   if (pathname === '/api/portfolio') {
@@ -55,7 +70,7 @@ http.createServer(async (req, res) => {
   if (!file.startsWith(root + sep) || !(file === resolve(root, 'index.html') || file.startsWith(resolve(root, 'src') + sep))) { res.writeHead(404).end('Not found'); return; }
   const body = await readFile(file); res.writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' }).end(body);
  } catch (error) {
-  if (req.url?.startsWith('/api/collection') || req.url?.startsWith('/api/analytics')) {
+  if (req.url?.startsWith('/api/collection') || req.url?.startsWith('/api/analytics') || req.url?.startsWith('/api/health')) {
    res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }).end(JSON.stringify({ error: 'Collection data is temporarily unavailable.' }));
    return;
   }

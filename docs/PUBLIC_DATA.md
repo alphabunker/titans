@@ -17,6 +17,12 @@ manifest and analytics artifact digest, validates its snapshot ID and asset
 count, and serves the precomputed Fortress indexes. The browser rejects
 analytics that do not identify the same snapshot as `/api/collection`.
 
+`GET /api/health` follows that same chain and reports only bounded operational
+state: health, snapshot ID, activation age, staleness, asset count, rules
+version, and service categories. It returns `503` for stale or unverifiable
+data and never returns exception text, provider payloads, credentials, or
+submitted addresses.
+
 ## Cache behavior
 
 - Browser freshness: 60 seconds.

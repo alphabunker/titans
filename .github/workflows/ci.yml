@@ -1,0 +1,41 @@
+name: Required checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, feat/collection-explorer]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: required-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax and contract checks
+        run: npm run check
+      - name: Unit, schema, normalization, analytics, and accessibility-critical tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Repository history and bundle secret scan
+        run: npm run scan:secrets
+      - name: Retain verified site build
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-site-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 7

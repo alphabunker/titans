@@ -1,0 +1,38 @@
+name: Platform health monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7,37 * * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: titans-platform-health
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE_URL: ${{ vars.MONITORED_SITE_URL || 'https://feat-collection-explorer.titans-preview.pages.dev' }}
+    steps:
+      - name: Check active snapshot health
+        run: |
+          curl --fail --silent --show-error --retry 2 --max-time 20 "$SITE_URL/api/health" --output health.json
+          node -e "const fs=require('fs');const h=JSON.parse(fs.readFileSync('health.json'));if(h.status!=='healthy'||h.snapshot?.assetCount!==6500)process.exit(1);console.log(JSON.stringify(h,null,2))"
+      - name: Check public collection and analytics routes
+        run: |
+          curl --fail --silent --show-error --retry 2 --max-time 30 "$SITE_URL/api/collection" --output /dev/null
+          curl --fail --silent --show-error --retry 2 --max-time 30 "$SITE_URL/api/analytics" --output /dev/null
+      - name: Open or update an operator alert
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing="$(gh issue list --state open --search 'Platform health monitor failed in:title' --json number --jq '.[0].number // empty')"
+          body="Automated health checks failed for $SITE_URL in workflow run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID. Investigate the active R2 pointer, Pages Functions logs, and upstream status before changing production data."
+          if [ -n "$existing" ]; then gh issue comment "$existing" --body "$body"; else gh issue create --title "Platform health monitor failed" --body "$body"; fi

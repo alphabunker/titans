@@ -64,6 +64,7 @@ export async function handlePortfolioRequest({
   cache = responseCache,
   rateLimit = options => takeRateLimit(options.key, options),
   now = () => new Date(),
+  logger = console,
 } = {}) {
   const bucketKey = request.headers.get('cf-connecting-ip') || 'local';
   const rate = rateLimit({ key: bucketKey, now: now().getTime() });
@@ -112,7 +113,11 @@ export async function handlePortfolioRequest({
     if (error instanceof CardanoAddressError) {
       return errorResponse(error.code, error.message, 400, { headers: rateHeaders });
     }
-    if (isTimeout(error)) return errorResponse('upstream_timeout', 'The holdings provider timed out.', 504, { retryable: true, headers: rateHeaders });
+    if (isTimeout(error)) {
+      logger.warn?.('Portfolio provider failure', { code: 'upstream_timeout' });
+      return errorResponse('upstream_timeout', 'The holdings provider timed out.', 504, { retryable: true, headers: rateHeaders });
+    }
+    logger.warn?.('Portfolio provider failure', { code: 'upstream_unavailable' });
     return errorResponse('upstream_unavailable', 'The holdings provider is temporarily unavailable.', 503, { retryable: true, headers: rateHeaders });
   }
 }

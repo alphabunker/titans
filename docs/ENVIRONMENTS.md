@@ -10,6 +10,14 @@
 
 Preview must not write production D1/R2 data or publish the production pointer. Production metadata publication stays separate from frontend deployment so a refresh never requires a code commit.
 
+The repository defines `preview` and `production` deployment jobs. Both GitHub
+environments exist. Preview is configured with the non-production Pages, D1,
+and R2 resource variables. Production has a `main`-only deployment branch rule;
+its resource variables and secrets remain unset until separate production
+resources are approved. Add a required reviewer if the repository plan exposes
+that protection rule. Workflow files name the environments, while repository
+settings own their reviewer and branch protections.
+
 ## Configuration classes
 
 Browser-safe values may include:

@@ -7,6 +7,7 @@ await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 await Promise.all([
   cp(resolve(root, 'index.html'), resolve(output, 'index.html')),
+  cp(resolve(root, '_headers'), resolve(output, '_headers')),
   cp(resolve(root, 'src'), resolve(output, 'src'), { recursive: true }),
 ]);
 process.stdout.write(`Built static site in ${output}\n`);

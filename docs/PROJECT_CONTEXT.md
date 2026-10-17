@@ -24,6 +24,7 @@ The active public snapshot contains all 6,500 canonical CIP-68 records. Names, n
 - `src/trait-catalog.js`: historical source-observed taxonomy reference
 - `functions/api/collection.js`: verified, cached R2-to-browser route
 - `functions/api/analytics.js`: verified, cached active analytics route
+- `functions/api/health.js`: fail-closed snapshot identity and staleness route
 - `functions/api/portfolio.js`: validated, rate-limited, non-persistent holdings route
 - `src/cardano-address.js`: dependency-free Bech32, address-type, and mainnet validation
 - `src/portfolio.js`: provider-independent public portfolio projection
@@ -35,7 +36,7 @@ The active public snapshot contains all 6,500 canonical CIP-68 records. Names, n
 - `src/app.js`: accessible DOM rendering and local saved-state behavior
 - `src/style.css`: responsive presentation
 
-The accepted production system and service decisions are documented in `docs/ARCHITECTURE.md`, `docs/ENVIRONMENTS.md`, `docs/SERVICES.md`, and `docs/adr/`. Metadata providers normalize into versioned contracts rather than expose vendor payloads. Wallet ownership remains a separate, ephemeral adapter. Never ship API secrets in browser code.
+The accepted production system and service decisions are documented in `docs/ARCHITECTURE.md`, `docs/ENVIRONMENTS.md`, `docs/SERVICES.md`, `docs/OPERATIONS.md`, and `docs/adr/`. Metadata providers normalize into versioned contracts rather than expose vendor payloads. Wallet ownership remains a separate, ephemeral adapter. Never ship API secrets in browser code.
 
 ## Known reference limits
 
