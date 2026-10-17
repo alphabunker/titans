@@ -49,7 +49,7 @@ export class KoiosProvider {
   constructor({
     baseUrl = DEFAULT_BASE_URL,
     apiToken = '',
-    fetchImpl = globalThis.fetch,
+    fetchImpl = (...args) => globalThis.fetch(...args),
     retries = 4,
     retryBaseMs = 500,
     timeoutMs = 20_000,
