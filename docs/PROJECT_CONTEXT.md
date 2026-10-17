@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-This repository contains a free, local-first Cardano NFT collection explorer for **House Of Titans**. It is intentionally a dependency-free browser application for preview and refinement before any hosting, domain, wallet, backend, pricing, rarity, or live holdings work.
+This repository currently contains a free, local-first Cardano NFT collection explorer for **House Of Titans**. The prototype remains dependency-free while Epic #3 adds a production architecture for real metadata, hosting, and read-only holdings. No production service has been provisioned yet.
 
 - Repository: `alphabunker/titans`
 - Default branch: `main`
@@ -23,11 +23,12 @@ The 24 records in `src/data.js` are synthetic fixtures. They combine verified vo
 
 - `src/trait-catalog.js`: verified taxonomy snapshot and the filterable subset
 - `src/data.js`: collection identity, synthetic fixtures, async provider boundary
+- `src/contracts.js`: executable canonical data, analytics, portfolio, and provider boundaries
 - `src/explorer.js`: pure search/filter/sort behavior
 - `src/app.js`: accessible DOM rendering and local saved-state behavior
 - `src/style.css`: responsive presentation
 
-Future metadata providers should return the existing normalized item shape. Wallet ownership should remain a separate adapter. Validate policy IDs and remote image URLs, paginate large datasets, expose data provenance, and never ship API secrets in browser code.
+The accepted production system and service decisions are documented in `docs/ARCHITECTURE.md`, `docs/ENVIRONMENTS.md`, `docs/SERVICES.md`, and `docs/adr/`. Future metadata providers must normalize into the versioned contracts rather than expose vendor payloads. Wallet ownership remains a separate, ephemeral adapter. Validate policy IDs and remote image URLs, paginate large datasets, expose data provenance, and never ship API secrets in browser code.
 
 ## Known reference limits
 

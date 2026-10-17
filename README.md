@@ -27,7 +27,17 @@ npm test
 
 ## Structure and integration boundary
 
-`src/trait-catalog.js` contains the verified taxonomy snapshot. `src/data.js` supplies the async collection provider and synthetic records. Replace that adapter with normalized, verified metadata; keep wallet ownership retrieval in a separate provider. `src/explorer.js` owns pure filtering/sorting. `src/app.js` renders with DOM text nodes so metadata is not interpreted as HTML. `src/style.css` owns responsive layout and theme tokens. See `docs/PROJECT_CONTEXT.md` and `docs/TRAIT_CATALOG.md` for durable project and provenance notes.
+`src/trait-catalog.js` contains the verified taxonomy snapshot. `src/data.js` supplies the async collection provider and synthetic records. Replace that adapter with normalized, verified metadata; keep wallet ownership retrieval in a separate provider. `src/contracts.js` defines executable canonical asset, snapshot, analytics, portfolio, and provider boundaries. `src/explorer.js` owns pure filtering/sorting. `src/app.js` renders with DOM text nodes so metadata is not interpreted as HTML. `src/style.css` owns responsive layout and theme tokens.
+
+The production foundation is documented in:
+
+- `docs/ARCHITECTURE.md` — system shape, components, contracts, and data flows
+- `docs/ENVIRONMENTS.md` — local/preview/production and secret boundaries
+- `docs/SERVICES.md` — ownership, provisioning, costs, and replacement checklist
+- `docs/adr/` — accepted architecture decisions
+- `.env.example` — names of server-side configuration values, with no credentials
+
+See `docs/PROJECT_CONTEXT.md` and `docs/TRAIT_CATALOG.md` for durable project and provenance notes.
 
 Future integration must verify the collection policy ID and metadata source, paginate large collections, validate remote image URLs, and label data provenance and loading/error states. Do not put API secrets in browser code. Wallet connections are intentionally not implemented.
 
