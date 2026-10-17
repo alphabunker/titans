@@ -801,7 +801,7 @@ function renderPortfolio(session, portfolio) {
   })).size.toLocaleString();
   $('#portfolio-state').textContent = portfolio.status === 'partial' ? 'Partial result' : 'Complete result';
   $('#portfolio-checked').textContent = formatDate(portfolio.retrievedAt);
-  $('#clear-portfolio').textContent = session.kind === 'wallet' ? 'Disconnect' : 'Clear';
+  $('#clear-portfolio').textContent = 'Disconnect';
   const message = $('#portfolio-message');
   message.className = `portfolio-message ${portfolio.status === 'partial' ? 'is-partial' : canonicalOwned ? 'has-titans' : 'is-empty'}`;
   message.replaceChildren(
@@ -817,6 +817,7 @@ function renderPortfolio(session, portfolio) {
   renderTitansPyramid(owner, portfolio);
   renderRareDetails(owner, portfolio);
   renderMiniCollections(owner, portfolio);
+  $('#fortress-entry').hidden = true;
   $('#portfolio-result').hidden = false;
   if (portfolio.status === 'partial') showFortressStatus('PARTIAL RESULT', 'Some holdings were resolved, but the provider could not complete every address batch.', 'warning');
   else hideFortressStatus();
@@ -1153,6 +1154,7 @@ async function beginWalletSession(wallet) {
 function clearFortressSession() {
   fortressSession = null;
   $('#portfolio-result').hidden = true;
+  $('#fortress-entry').hidden = false;
   $('#collection-character').hidden = true;
   $('#unexpected-pairings').hidden = true;
   $('#titans-pyramid').hidden = true;
@@ -1160,7 +1162,7 @@ function clearFortressSession() {
   $('#mini-collections').hidden = true;
   $('#address-form').reset();
   hideFortressStatus();
-  $('#fortress-entry-title').focus({ preventScroll: true });
+  $('#scan-wallets').focus({ preventScroll: true });
 }
 
 async function refreshFortressSession() {

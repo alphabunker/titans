@@ -62,18 +62,15 @@
           <img src="/src/assets/house-of-titans-fortress-v1.webp" width="1672" height="941" alt="A monumental purple-lit House of Titans fortress rising from a mountain valley." decoding="async" fetchpriority="high">
         </figure>
       </section>
-      <section class="fortress-entry" aria-labelledby="fortress-entry-title">
-        <div class="section-heading fortress-heading"><div><div class="eyebrow">CHOOSE AN ENTRANCE</div><h2 id="fortress-entry-title" tabindex="-1">Whichever path you take, the gates will open.</h2></div></div>
+      <section id="fortress-entry" class="fortress-entry" aria-label="Enter the Fortress">
         <div class="entry-grid">
           <article class="entry-card">
-            <div class="entry-number">01</div>
-            <div class="entry-copy"><h3>Connect a wallet</h3><p>Grant this page permission to read public account addresses through your installed CIP-30 wallet.</p></div>
+            <div class="entry-copy"><h3>Connect a wallet</h3><p>Present your wallet at the gate. The sentries read only its public address—nothing is signed or spent.</p></div>
             <div id="wallet-list" class="wallet-list" aria-live="polite"></div>
             <button id="scan-wallets" class="secondary-action" type="button">Check for wallets</button>
           </article>
           <article class="entry-card">
-            <div class="entry-number">02</div>
-            <div class="entry-copy"><h3>Analyze an address</h3><p>Enter a public Cardano mainnet stake or payment address. Connecting a wallet is optional.</p></div>
+            <div class="entry-copy"><h3>Analyze an address</h3><p>Know the coordinates? Enter a public Cardano address and let the Fortress summon the Titans held there.</p></div>
             <form id="address-form" novalidate>
               <label for="portfolio-address">Cardano address</label>
               <textarea id="portfolio-address" name="address" rows="3" autocomplete="off" spellcheck="false" placeholder="stake1… or addr1…" required></textarea>
@@ -86,7 +83,7 @@
       <section id="portfolio-result" class="portfolio-result" aria-labelledby="portfolio-result-title" hidden>
         <div class="portfolio-result-head">
           <div><div class="eyebrow" id="portfolio-source">PORTFOLIO</div><h2 id="portfolio-result-title">Holdings resolved</h2></div>
-          <div class="portfolio-actions"><button id="refresh-portfolio" class="secondary-action" type="button">Refresh</button><button id="clear-portfolio" class="text-button" type="button">Clear</button></div>
+          <div class="portfolio-actions"><button id="refresh-portfolio" class="secondary-action" type="button">Refresh</button><button id="clear-portfolio" class="text-button" type="button">Disconnect</button></div>
         </div>
         <div class="portfolio-overview">
           <div><span>TITANS</span><strong id="portfolio-count">0</strong></div>
