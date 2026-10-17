@@ -32,6 +32,7 @@ npm test
 The production foundation is documented in:
 
 - `docs/ARCHITECTURE.md` — system shape, components, contracts, and data flows
+- `docs/CANONICAL_DATA.md` — field provenance, normalization rules, invariants, and versioning
 - `docs/ENVIRONMENTS.md` — local/preview/production and secret boundaries
 - `docs/SERVICES.md` — ownership, provisioning, costs, and replacement checklist
 - `docs/adr/` — accepted architecture decisions
