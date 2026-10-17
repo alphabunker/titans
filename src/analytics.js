@@ -1,5 +1,5 @@
 import { COLLECTION_SIZE, CONTRACT_VERSION, assertAnalyticsSnapshot, assertCollectionSnapshot } from './contracts.js';
-import { COLLECTION_CHARACTER_RULE, FORTRESS_RULES_VERSION, PLACEHOLDER_VALUES, PYRAMID_RULE, RARITY_BANDS, UNEXPECTED_PAIRINGS_RULE } from './fortress-rules.js';
+import { COLLECTION_CHARACTER_RULE, FORTRESS_RULES_VERSION, PLACEHOLDER_VALUES, PYRAMID_RULE, RARITY_BANDS, RARITY_RULE_VERSION, UNEXPECTED_PAIRINGS_RULE } from './fortress-rules.js';
 import { normalizeComparisonKey } from './metadata-normalizer.js';
 
 const KEY_SEPARATOR = '\u001f';
@@ -291,6 +291,43 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
   }));
   const titanCollectionIndexes = analytics.indexes.pyramid.titan;
   const titanOwnedIndexes = titanCollectionIndexes.filter(index => ownedIndexes.has(index));
+  const rareDetailBands = Object.fromEntries(RARITY_BANDS.map(band => {
+    const details = (analytics.rarityBands[band.id] ?? [])
+      .flatMap(key => {
+        const frequency = analytics.traitFrequencies[key];
+        if (!frequency || frequency.placeholderLike) return [];
+        const matchingCollectionIndexes = analytics.indexes.byTrait[key] ?? [];
+        const matchingOwnedIndexes = matchingCollectionIndexes.filter(index => ownedIndexes.has(index));
+        return [{
+          key,
+          category: frequency.category,
+          value: frequency.value,
+          band: band.id,
+          bandLabel: band.label,
+          collectionCount: frequency.count,
+          collectionPercentage: frequency.percentage,
+          ownedCount: matchingOwnedIndexes.length,
+          ownedPercentage: percentage(matchingOwnedIndexes.length, ownedIndexes.size),
+          owned: matchingOwnedIndexes.length > 0,
+          representativeIndex: matchingOwnedIndexes[0] ?? matchingCollectionIndexes[0],
+          matchingOwnedIndexes,
+          matchingCollectionIndexes,
+        }];
+      })
+      .sort((left, right) => left.collectionPercentage - right.collectionPercentage
+        || right.ownedCount - left.ownedCount
+        || left.category.localeCompare(right.category)
+        || left.value.localeCompare(right.value));
+    return [band.id, {
+      id: band.id,
+      label: band.label,
+      minimum: band.minimum,
+      maximumExclusive: Number.isFinite(band.maximumExclusive) ? band.maximumExclusive : null,
+      representedCount: details.filter(detail => detail.owned).length,
+      missingCount: details.filter(detail => !detail.owned).length,
+      details,
+    }];
+  }));
 
   return {
     snapshotId: analytics.snapshotId,
@@ -326,6 +363,11 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
       represented: keys.filter(key => traitCounts[key] > 0),
       missing: keys.filter(key => traitCounts[key] === 0),
     }])),
+    rareDetails: {
+      ruleVersion: RARITY_RULE_VERSION,
+      excludedPlaceholderCount: Object.values(analytics.traitFrequencies).filter(frequency => frequency.placeholderLike).length,
+      bands: rareDetailBands,
+    },
     pyramid: {
       ruleVersion: analytics.indexes.pyramid.rule.version,
       requiredPerPyramid: analytics.indexes.pyramid.rule.tiers.reduce((total, tier) => total + tier.required, 0),

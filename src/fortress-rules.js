@@ -21,6 +21,8 @@ export const RARITY_BANDS = Object.freeze([
   Object.freeze({ id: 'common', label: 'Common', minimum: 15, maximumExclusive: Infinity }),
 ]);
 
+export const RARITY_RULE_VERSION = '1.0.0';
+
 export const PLACEHOLDER_VALUES = new Set(['none']);
 
 export const COLLECTION_CHARACTER_RULE = Object.freeze({

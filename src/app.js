@@ -19,6 +19,8 @@ let pairingReturnFocus = null;
 let pairingDetailTransition = false;
 let pyramidReturnFocus = null;
 let pyramidDetailTransition = false;
+let rareDetailReturnFocus = null;
+let rareDetailTransition = false;
 const state = {
   query: '', traits: {}, favorites: [], favoritesOnly: false, sort: 'asc', view: 'grid', page: 0,
 };
@@ -282,6 +284,108 @@ function showPyramidDetail(tier, trigger, nextTarget) {
   const initialView = tier.isTitan || tier.missingForNext === 0 ? 'owned' : 'collection';
   renderView(initialView);
   $('#pyramid-detail').showModal();
+  (initialView === 'owned' ? ownedTab : collectionTab).focus();
+}
+
+function rareDetailResultCard(item, owned) {
+  const card = el('article', undefined, `rare-detail-result-card${owned ? ' is-owned' : ''}`);
+  const button = el('button', undefined, 'card-open');
+  button.type = 'button';
+  button.setAttribute('aria-label', `View ${item.name}${owned ? ', in your collection' : ''}`);
+  button.append(art(item));
+  button.onclick = () => {
+    rareDetailTransition = true;
+    $('#rare-detail-dialog').close();
+    showDetail(item);
+  };
+  const copy = el('div', undefined, 'rare-detail-result-copy');
+  copy.append(el('h3', item.name), el('p', item.number ? `Titan #${item.number}` : 'Verified Titan', 'muted'));
+  if (owned) copy.append(el('span', 'YOUR TITAN', 'owned-badge'));
+  card.append(button, copy);
+  return card;
+}
+
+function showRareDetail(detail, trigger) {
+  rareDetailReturnFocus = trigger;
+  const content = $('#rare-detail-dialog-content');
+  const title = el('h2', detail.value);
+  title.id = 'rare-detail-dialog-title';
+  const intro = el('p', `${detail.category} · ${detail.bandLabel} · ${detail.collectionCount.toLocaleString()} of 6,500 Titans (${detail.collectionPercentage.toFixed(2)}%).`, 'rare-detail-dialog-intro');
+  const tablist = el('div', undefined, 'rare-detail-tabs');
+  tablist.setAttribute('role', 'tablist');
+  tablist.setAttribute('aria-label', `${detail.value} trait results`);
+  const collectionTab = el('button', `Meet the collection (${detail.collectionCount.toLocaleString()})`);
+  const ownedTab = el('button', `Your Titans (${detail.ownedCount.toLocaleString()})`);
+  const panel = el('div', undefined, 'rare-detail-results');
+  panel.id = 'rare-detail-results';
+  panel.setAttribute('role', 'tabpanel');
+  panel.tabIndex = -1;
+  const tabs = [collectionTab, ownedTab];
+  collectionTab.id = 'rare-detail-collection-tab';
+  ownedTab.id = 'rare-detail-owned-tab';
+  tabs.forEach(tab => {
+    tab.type = 'button';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-controls', panel.id);
+  });
+  const ownedIndexes = new Set(detail.matchingOwnedIndexes);
+  let activeView = 'collection';
+  let visibleCount = PAGE_SIZE;
+  const renderGrid = () => {
+    const indexes = activeView === 'collection' ? detail.matchingCollectionIndexes : detail.matchingOwnedIndexes;
+    const shown = indexes.slice(0, visibleCount);
+    const grid = el('div', undefined, 'rare-detail-dialog-grid');
+    for (const index of shown) {
+      const item = itemAtAnalyticsIndex(index);
+      if (item) grid.append(rareDetailResultCard(item, ownedIndexes.has(index)));
+    }
+    const summary = el('p', `Showing ${shown.length.toLocaleString()} of ${indexes.length.toLocaleString()} matching ${indexes.length === 1 ? 'Titan' : 'Titans'}.`, 'rare-detail-result-count');
+    summary.setAttribute('role', 'status');
+    const children = [summary, grid];
+    if (shown.length < indexes.length) {
+      const more = el('button', `Show ${Math.min(PAGE_SIZE, indexes.length - shown.length).toLocaleString()} more`, 'rare-detail-load-more');
+      more.type = 'button';
+      more.onclick = () => {
+        visibleCount += PAGE_SIZE;
+        renderGrid();
+        (panel.querySelector('.rare-detail-load-more') ?? panel).focus();
+      };
+      children.push(more);
+    }
+    panel.replaceChildren(...children);
+  };
+  const renderView = view => {
+    activeView = view;
+    visibleCount = PAGE_SIZE;
+    const activeTab = view === 'collection' ? collectionTab : ownedTab;
+    tabs.forEach(tab => {
+      const selected = tab === activeTab;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    panel.setAttribute('aria-labelledby', activeTab.id);
+    renderGrid();
+  };
+  collectionTab.onclick = () => renderView('collection');
+  ownedTab.onclick = () => renderView('owned');
+  tablist.onkeydown = event => {
+    const current = tabs.indexOf(document.activeElement);
+    if (current < 0) return;
+    let next = current;
+    if (event.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    tabs[next].click();
+    tabs[next].focus();
+  };
+  tablist.append(...tabs);
+  content.replaceChildren(el('div', 'RARE DETAILS', 'eyebrow'), title, intro, tablist, panel);
+  const initialView = detail.owned ? 'owned' : 'collection';
+  renderView(initialView);
+  $('#rare-detail-dialog').showModal();
   (initialView === 'owned' ? ownedTab : collectionTab).focus();
 }
 
@@ -607,10 +711,92 @@ function renderPortfolio(session, portfolio) {
   renderCollectionCharacter(owner, portfolio);
   renderUnexpectedPairings(owner, portfolio);
   renderTitansPyramid(owner, portfolio);
+  renderRareDetails(owner, portfolio);
   $('#portfolio-result').hidden = false;
   if (portfolio.status === 'partial') showFortressStatus('PARTIAL RESULT', 'Some holdings were resolved, but the provider could not complete every address batch.', 'warning');
   else hideFortressStatus();
   $('#portfolio-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderRareDetails(owner, portfolio) {
+  const section = $('#rare-details');
+  const root = $('#rare-details-content');
+  root.replaceChildren();
+  section.hidden = false;
+  if (!owner) {
+    const empty = el('div', undefined, 'rare-details-empty');
+    empty.append(el('strong', 'Rare details are temporarily unavailable'), el('span', 'The verified holdings are shown above, but the matching collection analytics could not be loaded.'));
+    root.append(empty);
+    $('#rare-details-method').textContent = '';
+    return;
+  }
+  const bandOrder = ['legendary', 'epic', 'rare', 'uncommon', 'common'];
+  let showAll = false;
+  let visibleCount = 36;
+  const renderDetails = () => {
+    const activeBands = showAll ? bandOrder : bandOrder.slice(0, 3);
+    const details = activeBands.flatMap(band => owner.rareDetails.bands[band]?.details ?? []);
+    const represented = details.filter(detail => detail.owned).length;
+    const controls = el('div', undefined, 'rare-details-controls');
+    const legend = el('div', undefined, 'rarity-legend');
+    for (const bandId of bandOrder) {
+      const band = owner.rareDetails.bands[bandId];
+      const pill = el('span', `${band.label} ${band.details.length}`, `rarity-pill is-${band.id}`);
+      legend.append(pill);
+    }
+    const toggle = el('button', showAll ? 'Show rare details' : 'Show all traits', 'rare-details-toggle');
+    toggle.type = 'button';
+    toggle.setAttribute('aria-expanded', String(showAll));
+    toggle.onclick = () => {
+      showAll = !showAll;
+      visibleCount = 36;
+      renderDetails();
+      root.querySelector('.rare-details-toggle')?.focus();
+    };
+    controls.append(legend, toggle);
+    const summary = el('div', undefined, 'rare-details-summary');
+    summary.append(
+      el('strong', `${represented.toLocaleString()} represented`),
+      el('span', `${(details.length - represented).toLocaleString()} still to collect · ${details.length.toLocaleString()} ${showAll ? 'supported traits' : 'traits under 6%'}`),
+    );
+    const grid = el('div', undefined, 'rare-details-grid');
+    for (const detail of details.slice(0, visibleCount)) {
+      const representative = itemAtAnalyticsIndex(detail.representativeIndex);
+      if (!representative) continue;
+      const card = el('article', undefined, `rare-detail-card is-${detail.band}${detail.owned ? ' is-owned' : ' is-missing'}`);
+      const visual = el('div', undefined, 'rare-detail-visual');
+      visual.append(art(representative));
+      const body = el('div', undefined, 'rare-detail-card-body');
+      const top = el('div', undefined, 'rare-detail-card-top');
+      top.append(el('span', detail.category.toUpperCase(), 'eyebrow'), el('span', detail.bandLabel, `rarity-label is-${detail.band}`));
+      body.append(
+        top,
+        el('h3', detail.value),
+        el('p', `${detail.collectionCount.toLocaleString()} of 6,500 · ${detail.collectionPercentage.toFixed(2)}%`, 'rare-detail-frequency'),
+        el('strong', detail.owned ? `${detail.ownedCount.toLocaleString()} in your collection · ${detail.ownedPercentage.toFixed(2)}%` : 'Still to collect', `rare-detail-state${detail.owned ? ' is-owned' : ''}`),
+      );
+      const open = el('button', detail.owned ? 'Explore this detail' : 'Meet matching Titans', 'rare-detail-open');
+      open.type = 'button';
+      open.onclick = () => showRareDetail(detail, open);
+      body.append(open);
+      card.append(visual, body);
+      grid.append(card);
+    }
+    const children = [controls, summary, grid];
+    if (visibleCount < details.length) {
+      const more = el('button', `Show ${Math.min(36, details.length - visibleCount).toLocaleString()} more traits`, 'rare-details-more');
+      more.type = 'button';
+      more.onclick = () => {
+        visibleCount += 36;
+        renderDetails();
+        (root.querySelector('.rare-details-more') ?? root.querySelector('.rare-details-toggle'))?.focus();
+      };
+      children.push(more);
+    }
+    root.replaceChildren(...children);
+  };
+  renderDetails();
+  $('#rare-details-method').textContent = `Bands are descriptive navigation based on full-collection frequency: Legendary under 1%, Epic 1–under 3%, Rare 3–under 6%, Uncommon 6–under 15%, and Common 15% or more. They are not prices, investment guidance, or an official value score. Rule ${owner.rareDetails.ruleVersion}; ${owner.rareDetails.excludedPlaceholderCount} placeholder-like values excluded${portfolio.status === 'partial' ? ' · owner states based on partial holdings' : ''}.`;
 }
 
 function renderTitansPyramid(owner, portfolio) {
@@ -822,6 +1008,7 @@ function clearFortressSession() {
   $('#collection-character').hidden = true;
   $('#unexpected-pairings').hidden = true;
   $('#titans-pyramid').hidden = true;
+  $('#rare-details').hidden = true;
   $('#address-form').reset();
   hideFortressStatus();
   $('#fortress-entry-title').focus({ preventScroll: true });
@@ -873,6 +1060,17 @@ $('#pyramid-detail').addEventListener('close', () => {
   }
   pyramidReturnFocus?.focus();
   pyramidReturnFocus = null;
+});
+$('#close-rare-detail').onclick = () => $('#rare-detail-dialog').close();
+$('#rare-detail-dialog').onclick = event => { if (event.target === $('#rare-detail-dialog')) $('#rare-detail-dialog').close(); };
+$('#rare-detail-dialog').addEventListener('close', () => {
+  if (rareDetailTransition) {
+    rareDetailTransition = false;
+    rareDetailReturnFocus = null;
+    return;
+  }
+  rareDetailReturnFocus?.focus();
+  rareDetailReturnFocus = null;
 });
 
 $('#address-form').onsubmit = async event => {

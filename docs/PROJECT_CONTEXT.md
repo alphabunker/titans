@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-This repository contains a dependency-free Cardano NFT collection explorer for **House Of Titans**. The preview environment serves the complete validated collection and matching analytics from private R2 through same-origin Cloudflare Pages Functions. The Fortress provides equal read-only CIP-30 wallet and manual-address paths over the separate ephemeral portfolio route, then derives the owner summary, collection character, Unexpected Pairings, and five-rank Pyramid locally.
+This repository contains a dependency-free Cardano NFT collection explorer for **House Of Titans**. The preview environment serves the complete validated collection and matching analytics from private R2 through same-origin Cloudflare Pages Functions. The Fortress provides equal read-only CIP-30 wallet and manual-address paths over the separate ephemeral portfolio route, then derives the owner summary, collection character, Unexpected Pairings, five-rank Pyramid, and Rare Details explorer locally.
 
 - Repository: `alphabunker/titans`
 - Default branch: `main`
@@ -41,4 +41,4 @@ The accepted production system and service decisions are documented in `docs/ARC
 
 - Mugello collection insights was not retrievable in the earlier environment, so exact feature parity is not claimed.
 - The authenticated House of Titans inventory app was inspected on 2026-10-14. Its verified UI palette is now used: fallback `#0A0A0E`, app surface `#16161E`, light surface `#1F1F28`, selected/contrast surface `#272734`, hot purple `#AB8BAD`, and purple gradient endpoint `#A463A8`. The live app's transparent `favicon/64x64.png` is now used for the header logo; the layout and other brand assets remain provisional.
-- Official NFT imagery, real token metadata, the read-only holdings service, The Fortress entry UI, owner summary, collection character, Unexpected Pairings explorer, and five-rank Pyramid tracker are integrated. Prices, marketplace listings, transactions, access gating, and ownership proof are not.
+- Official NFT imagery, real token metadata, the read-only holdings service, The Fortress entry UI, owner summary, collection character, Unexpected Pairings explorer, five-rank Pyramid tracker, and Rare Details explorer are integrated. Prices, marketplace listings, transactions, access gating, and ownership proof are not.

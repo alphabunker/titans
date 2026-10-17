@@ -55,6 +55,27 @@ test('rarity band thresholds follow the approved initial boundaries', () => {
   assert.equal(rarityBandFor(15), 'common');
 });
 
+test('rare details reconcile frequencies, owner states, representatives, and placeholder exclusions', () => {
+  const analytics = buildCollectionAnalytics(snapshot);
+  const owner = buildOwnerAnalytics([assets[0].assetId, assets[2].assetId], analytics);
+  const details = Object.values(owner.rareDetails.bands).flatMap(band => band.details);
+  const nonPlaceholderKeys = Object.entries(analytics.traitFrequencies).filter(([, frequency]) => !frequency.placeholderLike).map(([key]) => key);
+  assert.equal(owner.rareDetails.ruleVersion, '1.0.0');
+  assert.equal(owner.rareDetails.excludedPlaceholderCount, 1);
+  assert.equal(details.length, nonPlaceholderKeys.length);
+  assert.ok(details.every(detail => detail.collectionCount === detail.matchingCollectionIndexes.length));
+  assert.ok(details.every(detail => detail.ownedCount === detail.matchingOwnedIndexes.length));
+  assert.ok(details.every(detail => detail.representativeIndex === (detail.matchingOwnedIndexes[0] ?? detail.matchingCollectionIndexes[0])));
+  assert.ok(details.every(detail => !detail.value.toLowerCase().includes('none')));
+  const human = details.find(detail => detail.value === 'Human');
+  assert.equal(human.owned, true);
+  assert.equal(human.ownedCount, 1);
+  const alien = details.find(detail => detail.value === 'Alien');
+  assert.equal(alien.owned, true);
+  assert.equal(alien.ownedCount, 1);
+  assert.equal(Object.values(owner.rareDetails.bands).every(band => band.representedCount + band.missingCount === band.details.length), true);
+});
+
 test('versioned mini-collection membership is deterministic from canonical traits', () => {
   const analytics = buildCollectionAnalytics(snapshot, {
     generatedAt: '2026-10-17T18:01:00.000Z',

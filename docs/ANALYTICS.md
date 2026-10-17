@@ -140,3 +140,34 @@ image loading. Tabs provide tab/tablist/panel semantics plus Arrow/Home/End
 navigation; native modal Escape/focus containment and return-focus behavior
 match the pairing explorer. Rank browsing, pagination, and NFT detail opening
 use loaded in-memory data and make no blockchain-provider calls.
+
+## Rare Details
+
+Rare Details rule `1.0.0` is defined in `src/fortress-rules.js`. It assigns
+every non-placeholder normalized category/value pair to exactly one band using
+its complete-collection percentage:
+
+- Legendary: below 1%;
+- Epic: 1% to below 3%;
+- Rare: 3% to below 6%;
+- Uncommon: 6% to below 15%;
+- Common: 15% and above.
+
+The initial view shows Legendary, Epic, and Rare details. **Show all traits**
+adds Uncommon and Common so the view covers the full supported vocabulary.
+Placeholder-like values such as `None` and `NONE` remain available in the
+underlying frequency data for reconciliation but are intentionally excluded
+from this feature; the UI reports how many normalized placeholder entries were
+excluded.
+
+Each detail reports its canonical collection count and percentage, the exact
+owned count and owner-collection percentage, and whether it is owned or still
+to collect. Its representative image is the first owned match in canonical
+order when available, otherwise the first collection match. Selecting a detail
+opens its complete matching collection and the owned subset in an accessible
+tabbed dialog. Candidate results mount 48 at a time, the overview mounts at
+most 36 additional cards per action, and all calculation and exploration use
+the loaded in-memory snapshot without a blockchain-provider call.
+
+Rarity labels are descriptive metadata summaries only. They are not prices,
+investment guidance, marketplace rankings, or an official value score.

@@ -31,7 +31,7 @@ The real-metadata importer is server-side and requires provider configuration. S
 - Fixed 48-item result pages so all 6,500 records remain searchable without mounting thousands of cards or images
 - Read-only `/api/portfolio` lookup for validated mainnet stake/payment addresses, with private provider credentials, strict policy filtering, ephemeral caching, and rate limiting
 - The Fortress tab with equal CIP-30 wallet and manual-address entry paths, refresh/disconnect/clear controls, and explicit zero, partial, wrong-network, rejection, and provider-failure states
-- Owner summary, versioned collection-character highlights, Unexpected Pairings, and the five-rank Titans Pyramid with local owned/candidate exploration
+- Owner summary, versioned collection-character highlights, Unexpected Pairings, the five-rank Titans Pyramid, and a five-band Rare Details explorer with local owned/candidate exploration
 - No runtime packages, remote fonts, trackers, browser credentials, or wallet transactions
 
 ## Structure and integration boundary
@@ -63,7 +63,7 @@ Do not put API secrets in browser code. The wallet bridge requests only CIP-30 p
 - Confirmed collection: [House Of Titans on Wayup](https://www.wayup.io/collection/53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad), policy `53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad`. This is the Titans collection, not Strongholds.
 - Canonical metadata currently supplies 12 trait categories: Back, Background, Class, Eyes, Face, Hand, Head, House, Outfit, Skin, Special, and Type. Exact source casing is retained, including `None` and `NONE`.
 - Trait Count remains a historical taxonomy reference but is not assigned or filterable because it is absent from canonical metadata.
-- Names, NFT imagery, and trait values now come from the complete active snapshot. The Fortress entry, holdings lookup, owner summary, collection character, Unexpected Pairings, and five-rank Pyramid tracker are available; later Fortress sections remain future stories.
+- Names, NFT imagery, and trait values now come from the complete active snapshot. The Fortress entry, holdings lookup, owner summary, collection character, Unexpected Pairings, five-rank Pyramid tracker, and Rare Details explorer are available; later Fortress sections remain future stories.
 
 ## Validation limits
 
