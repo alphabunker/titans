@@ -29,8 +29,7 @@ The GitHub `preview` environment holds a least-privilege Cloudflare token with
 Pages, D1, and R2 write access plus account read access. The pull-request deploy
 workflow completed its verification and Pages deployment jobs successfully.
 The `main` branch rule requires pull requests and the `verify` status check,
-but GitHub reports that this private organization repository needs a Team or
-Enterprise plan before the rule is enforced.
+and GitHub enforces the rule for the public repository.
 
 ## Full-dataset performance
 

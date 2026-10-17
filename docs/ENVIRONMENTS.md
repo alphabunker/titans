@@ -20,10 +20,8 @@ that protection rule. Workflow files name the environments, while repository
 settings own their reviewer and branch protections.
 
 The repository's `main` rule is configured to require pull requests and the
-GitHub Actions `verify` check. GitHub currently reports that enforcement on
-this private organization repository requires a Team or Enterprise plan; the
-rule remains configured but is not an enforceable launch gate on the current
-plan.
+GitHub Actions `verify` check. The public repository makes that protection an
+enforced launch gate on the current GitHub plan.
 
 ## Configuration classes
 
