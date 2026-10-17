@@ -18,6 +18,7 @@
 latest.json
 pointers/history/<activation-time>-<snapshot-id>.json
 snapshots/<snapshot-id>/collection.json
+snapshots/<snapshot-id>/analytics.json
 snapshots/<snapshot-id>/validation-report.json
 snapshots/<snapshot-id>/ingestion-run.json
 snapshots/<snapshot-id>/manifest.json
@@ -30,7 +31,7 @@ Snapshot artifacts are immutable. Each manifest records artifact byte size and S
 
 1. Record/update the ingestion run in D1.
 2. Upsert changed canonical assets and traits into D1.
-3. Write immutable R2 collection, validation, and run artifacts.
+3. Write immutable R2 collection, analytics, validation, and run artifacts.
 4. Write and validate the manifest.
 5. Save the current pointer to pointer history.
 6. Replace `latest.json`.
@@ -46,3 +47,15 @@ If step 7 fails, the public R2 pointer remains authoritative and the next reconc
 
 D1 exports must be written weekly and immediately before migrations once production bindings exist. R2 lifecycle policy may remove older raw evidence only after the approved retention interval; active, previous, manifests, and required database exports must remain recoverable.
 
+Use Wrangler's supported export/import path for those retained copies:
+
+```sh
+npx wrangler d1 export titans-metadata --remote --output exports/d1/<timestamp>.sql
+npx wrangler d1 execute titans-metadata --remote --file exports/d1/<timestamp>.sql
+```
+
+Before applying a migration, take the export first, then run
+`npx wrangler d1 migrations apply titans-metadata --remote`. For local
+verification, use the same migration command with `--local`. Cloudflare D1
+Time Travel is an additional recovery layer, not a replacement for the
+retained pre-migration export and the immutable R2 snapshot.

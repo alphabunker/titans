@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CIP68_USER_LABEL_PREFIX, COLLECTION_POLICY_ID, CONTRACT_VERSION } from '../src/contracts.js';
+import { buildCollectionAnalytics } from '../src/analytics.js';
 import { D1CanonicalRepository } from '../src/storage/d1-repository.js';
 import { R2SnapshotStore } from '../src/storage/r2-snapshot-store.js';
 
@@ -69,7 +70,8 @@ function publishable(count = 6500) {
   const snapshot = { contractVersion: CONTRACT_VERSION, snapshotId: 'snapshot-1', publishedAt: '2026-10-17T18:00:00.000Z', policyId: COLLECTION_POLICY_ID, expectedCount: 6500, assets };
   const report = { contractVersion: CONTRACT_VERSION, reportId: 'report-1', snapshotId: 'snapshot-1', createdAt: '2026-10-17T18:00:00.000Z', status: 'valid', checks: [{ name: 'all', status: 'pass', message: 'All checks passed.' }] };
   const run = { contractVersion: CONTRACT_VERSION, runId: 'run-1', mode: 'bootstrap', provider: 'koios', startedAt: '2026-10-17T17:00:00.000Z', completedAt: '2026-10-17T18:00:00.000Z', status: 'succeeded', counts: { discovered: count, fetched: count, normalized: count, changed: count, warnings: 0, errors: 0 } };
-  return { snapshot, report, run };
+  const analytics = buildCollectionAnalytics(snapshot, { generatedAt: '2026-10-17T18:00:00.000Z' });
+  return { snapshot, analytics, report, run };
 }
 
 test('R2 publication writes immutable artifacts before activating latest', async () => {
@@ -78,6 +80,7 @@ test('R2 publication writes immutable artifacts before activating latest', async
   const result = await store.publish({ ...publishable(), normalizationVersion: '1.0.0' });
   assert.equal(result.pointer.snapshotId, 'snapshot-1');
   assert.ok(bucket.objects.has('snapshots/snapshot-1/collection.json'));
+  assert.ok(bucket.objects.has('snapshots/snapshot-1/analytics.json'));
   assert.ok(bucket.objects.has('snapshots/snapshot-1/manifest.json'));
   assert.ok(bucket.objects.has('latest.json'));
   assert.equal(result.manifest.actualCount, 6500);

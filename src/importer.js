@@ -50,7 +50,9 @@ export async function runCollectionImport({
   mode = 'manual',
   checkpointStore = createMemoryCheckpointStore(),
   pageSize = 500,
-  batchSize = 100,
+  // Koios rejects the serialized request body for larger CIP-68 batches with
+  // HTTP 413. Twenty-five stays below the public API payload limit.
+  batchSize = 25,
   expectedCount = COLLECTION_SIZE,
   previousHashes = new Map(),
   now = () => new Date(),
@@ -86,7 +88,12 @@ export async function runCollectionImport({
     try {
       rows = await provider.fetchAssetMetadata(batch);
     } catch (error) {
-      checkpoint.errors.push({ scope: 'batch', assetIds: batch.map(asset => asset.assetId), message: error.message });
+      checkpoint.errors.push({
+        scope: 'batch',
+        provider: provider.id ?? 'koios',
+        assetIds: batch.map(asset => asset.assetId),
+        message: error.message,
+      });
       await checkpointStore.save(checkpoint);
       break;
     }
@@ -95,12 +102,21 @@ export async function runCollectionImport({
       try {
         const row = rowsById.get(asset.assetId);
         if (!row) throw new TypeError('Koios asset_info omitted the requested asset');
-        const record = normalizeCip68Asset(koiosRowToEvidence(row, retrievedAt));
+        const evidence = provider.toEvidence
+          ? provider.toEvidence(row, retrievedAt)
+          : koiosRowToEvidence(row, retrievedAt);
+        const record = normalizeCip68Asset(evidence);
         checkpoint.records.push(record);
         checkpoint.processedAssetIds.push(asset.assetId);
         processed.add(asset.assetId);
       } catch (error) {
-        checkpoint.errors.push({ scope: 'asset', assetId: asset.assetId, message: error.message });
+        checkpoint.errors.push({
+          scope: 'asset',
+          provider: provider.id ?? 'koios',
+          assetId: asset.assetId,
+          rawAssetNameHex: asset.rawAssetNameHex,
+          message: error.message,
+        });
       }
     }
     await checkpointStore.save(checkpoint);
@@ -138,13 +154,14 @@ export async function runCollectionImport({
   counts.discovered = checkpoint.assets.length;
   counts.fetched = checkpoint.processedAssetIds.length + checkpoint.errors.filter(error => error.scope === 'asset').length;
   counts.normalized = checkpoint.records.length;
-  counts.changed = checkpoint.records.filter(asset => previousHashes.get(asset.assetId) !== asset.metadataHash).length;
+  const changedAssets = checkpoint.records.filter(asset => previousHashes.get(asset.assetId) !== asset.metadataHash);
+  counts.changed = changedAssets.length;
   counts.errors = checkpoint.errors.length;
   const run = assertIngestionRun({
     contractVersion: CONTRACT_VERSION,
     runId,
     mode,
-    provider: 'koios',
+    provider: provider.id ?? 'koios',
     startedAt,
     completedAt: now().toISOString(),
     status: report.status === 'valid' ? 'succeeded' : 'failed',
@@ -161,6 +178,7 @@ export async function runCollectionImport({
       expectedCount,
       assets: checkpoint.records,
     },
+    changedAssets,
     errors: checkpoint.errors,
   };
 }

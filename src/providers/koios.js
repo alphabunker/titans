@@ -62,6 +62,7 @@ export class KoiosProvider {
     this.retryBaseMs = retryBaseMs;
     this.timeoutMs = timeoutMs;
     this.sleepImpl = sleepImpl;
+    this.id = 'koios';
   }
 
   async request(path, init = {}) {
@@ -96,7 +97,15 @@ export class KoiosProvider {
     const offset = Number(cursor);
     if (!Number.isSafeInteger(offset) || offset < 0) throw new TypeError('cursor must be a non-negative integer string');
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) throw new TypeError('limit must be between 1 and 1000');
-    const query = new URLSearchParams({ _asset_policy: COLLECTION_POLICY_ID, limit: String(limit), offset: String(offset) });
+    // A stable order is mandatory for offset pagination. Without it, Koios can
+    // return a different row order on each request, which creates duplicates
+    // and omissions as the importer advances through the policy.
+    const query = new URLSearchParams({
+      _asset_policy: COLLECTION_POLICY_ID,
+      order: 'asset_name.asc',
+      limit: String(limit),
+      offset: String(offset),
+    });
     const rows = await this.request(`/policy_asset_list?${query}`);
     if (!Array.isArray(rows)) throw new TypeError('Koios policy_asset_list response must be an array');
     const assets = rows.flatMap(row => {
@@ -115,4 +124,3 @@ export class KoiosProvider {
     return rows;
   }
 }
-

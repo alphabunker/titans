@@ -33,6 +33,7 @@ test('Koios policy pagination returns only CIP-68 user tokens', async () => {
   assert.equal(result.nextCursor, '2');
   assert.match(calls[0].url, /policy_asset_list/);
   assert.match(calls[0].url, /_asset_policy=/);
+  assert.match(calls[0].url, /order=asset_name\.asc/);
 });
 
 test('Koios bulk request uses the documented nested asset list body', async () => {
@@ -73,4 +74,3 @@ test('Koios evidence resolves label 222 and its reference-token identity', () =>
 test('stable JSON hashing is independent of object key order', () => {
   assert.equal(sha256Json({ a: 1, b: 2 }), sha256Json({ b: 2, a: 1 }));
 });
-

@@ -68,4 +68,19 @@ test('importer cannot mark a partial or malformed candidate valid', async () => 
   assert.equal(result.run.status, 'failed');
   assert.equal(result.report.status, 'invalid');
   assert.equal(result.run.counts.errors, 1);
+  assert.equal(result.errors[0].provider, 'koios');
+  assert.equal(result.errors[0].rawAssetNameHex, asset.rawAssetNameHex);
+});
+
+test('importer identifies unchanged assets so persistence can skip rewrites', async () => {
+  const asset = makeAsset(1);
+  const provider = {
+    async listPolicyAssets() { return { assets: [asset], nextCursor: null }; },
+    async fetchAssetMetadata() { return [row(asset)]; },
+  };
+  const first = await runCollectionImport({ provider, expectedCount: 1, runId: 'first' });
+  const previousHashes = new Map(first.snapshot.assets.map(record => [record.assetId, record.metadataHash]));
+  const second = await runCollectionImport({ provider, expectedCount: 1, previousHashes, runId: 'second' });
+  assert.equal(second.run.counts.changed, 0);
+  assert.deepEqual(second.changedAssets, []);
 });

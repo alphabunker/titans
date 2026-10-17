@@ -29,7 +29,11 @@ npm run analytics -- --input .data/import/collection.candidate.json --output .da
 
 The command reports raw and gzip byte counts and exits with status 2 if the compressed file exceeds 2 MiB. Crossing that threshold requires a documented sharding or narrow-read-API decision before publication.
 
+The full 6,500-asset bootstrap measured 2,567,510 bytes raw and 359,532
+bytes gzip on 2026-10-17. R2 publication validates that analytics reference
+the same snapshot and asset count, then writes `analytics.json` before the
+atomic `latest.json` pointer changes.
+
 ## Rule versions
 
 `src/fortress-rules.js` owns the initial Pyramid and rarity boundaries. Mini-collection rules are supplied as approved configuration and embedded with their own version. A change to calculation semantics increments `FORTRESS_RULES_VERSION` and regenerates the analytics artifact.
-

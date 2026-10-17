@@ -4,6 +4,7 @@ import {
   COLLECTION_POLICY_ID,
   COLLECTION_SIZE,
   CONTRACT_VERSION,
+  assertAnalyticsSnapshot,
   assertCollectionSnapshot,
   assertIngestionRun,
   assertSnapshotManifest,
@@ -39,15 +40,20 @@ export class R2SnapshotStore {
     return JSON.parse(decoder.decode(buffer));
   }
 
-  async publish({ snapshot, report, run, normalizationVersion }) {
+  async publish({ snapshot, analytics, report, run, normalizationVersion }) {
     assertCollectionSnapshot(snapshot);
+    assertAnalyticsSnapshot(analytics);
     assertValidationReport(report);
     assertIngestionRun(run);
     if (report.status !== 'valid' || run.status !== 'succeeded') throw new TypeError('Only a valid successful import can be published');
     if (report.snapshotId !== snapshot.snapshotId) throw new TypeError('Validation report does not match the snapshot');
+    if (analytics.snapshotId !== snapshot.snapshotId || analytics.assetCount !== snapshot.assets.length) {
+      throw new TypeError('Analytics do not match the canonical snapshot');
+    }
     const prefix = `snapshots/${snapshot.snapshotId}`;
     const artifacts = [];
     artifacts.push({ kind: 'canonical', ...await this.putJson(`${prefix}/collection.json`, snapshot) });
+    artifacts.push({ kind: 'analytics', ...await this.putJson(`${prefix}/analytics.json`, analytics) });
     artifacts.push({ kind: 'validation', ...await this.putJson(`${prefix}/validation-report.json`, report) });
     artifacts.push({ kind: 'ingestion-run', ...await this.putJson(`${prefix}/ingestion-run.json`, run) });
     const contentHash = artifacts.find(artifact => artifact.kind === 'canonical').sha256;
@@ -92,4 +98,3 @@ export class R2SnapshotStore {
     return restored;
   }
 }
-
