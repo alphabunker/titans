@@ -1,9 +1,11 @@
 import { sampleCollectionProvider } from './data.js';
 import { collectionSummary, explore } from './explorer.js';
+import { createTitanImage, readMediaConfig, resolveIpfsImageUrl } from './media.js';
 import { filterTraitCatalog } from './trait-catalog.js';
 
 const $ = selector => document.querySelector(selector);
 const items = await sampleCollectionProvider.getItems();
+const mediaConfig = readMediaConfig();
 const state = {
   query: '', traits: {}, favorites: [], favoritesOnly: false, sort: 'asc', view: 'grid',
 };
@@ -23,10 +25,29 @@ const el = (tag, text, className) => {
 };
 
 function art(item) {
+  if (item.imageUri || item.imageCid) return createTitanImage(item, mediaConfig);
   const node = el('div', undefined, 'art');
   node.style.setProperty('--hue', item.hue);
   node.append(el('span', 'T', 'art-symbol'), el('span', 'SYNTHETIC PREVIEW', 'art-label'));
   return node;
+}
+
+function mediaProvenance(item) {
+  if (!item.imageUri && !item.imageCid) return null;
+  try {
+    const identity = resolveIpfsImageUrl(item, mediaConfig);
+    const root = el('p', undefined, 'media-provenance');
+    root.append(el('span', 'ON-CHAIN IMAGE'));
+    const link = el('a', `CID ${identity.cid} ↗`);
+    link.href = identity.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    const uri = el('code', identity.imageUri);
+    root.append(link, uri);
+    return root;
+  } catch {
+    return null;
+  }
 }
 
 function showDetail(item) {
@@ -35,14 +56,17 @@ function showDetail(item) {
   title.id = 'detail-title';
   const traits = el('dl', undefined, 'detail-traits');
   for (const [key, value] of Object.entries(item.traits)) traits.append(el('dt', key), el('dd', value));
-  content.replaceChildren(
+  const children = [
     art(item),
     el('div', 'SYNTHETIC SAMPLE NFT', 'eyebrow'),
     title,
     el('p', 'Verified vocabulary, fictional assignment', 'detail-provenance'),
     traits,
     el('p', 'This combination and artwork are placeholders. Ownership is not verified.', 'muted'),
-  );
+  ];
+  const provenance = mediaProvenance(item);
+  if (provenance) children.push(provenance);
+  content.replaceChildren(...children);
   $('#detail').showModal();
   $('#close-detail').focus();
 }

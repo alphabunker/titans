@@ -8,7 +8,8 @@
     "benchmark:analytics": "node scripts/benchmark-analytics.mjs",
     "import:collection": "node scripts/import-collection.mjs",
     "prepare:publication": "node scripts/prepare-publication.mjs",
+    "validate:images": "node scripts/validate-images.mjs",
     "test": "node --test",
-    "check": "node --check scripts/benchmark-analytics.mjs && node --check scripts/generate-analytics.mjs && node --check scripts/import-collection.mjs && node --check scripts/prepare-publication.mjs && node --check src/analytics.js && node --check src/app.js && node --check src/contracts.js && node --check src/data.js && node --check src/explorer.js && node --check src/fortress-rules.js && node --check src/importer.js && node --check src/metadata-normalizer.js && node --check src/providers/blockfrost.js && node --check src/providers/koios.js && node --check src/storage/d1-repository.js && node --check src/storage/r2-snapshot-store.js && node --check src/trait-catalog.js"
+    "check": "node --check scripts/benchmark-analytics.mjs && node --check scripts/generate-analytics.mjs && node --check scripts/import-collection.mjs && node --check scripts/prepare-publication.mjs && node --check scripts/validate-images.mjs && node --check src/analytics.js && node --check src/app.js && node --check src/contracts.js && node --check src/data.js && node --check src/explorer.js && node --check src/fortress-rules.js && node --check src/importer.js && node --check src/media.js && node --check src/metadata-normalizer.js && node --check src/providers/blockfrost.js && node --check src/providers/koios.js && node --check src/storage/d1-repository.js && node --check src/storage/r2-snapshot-store.js && node --check src/trait-catalog.js"
   }
 }
