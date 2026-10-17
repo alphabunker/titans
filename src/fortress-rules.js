@@ -1,4 +1,4 @@
-export const FORTRESS_RULES_VERSION = '1.0.0';
+export const FORTRESS_RULES_VERSION = '1.1.0';
 
 export const PYRAMID_RULE = Object.freeze({
   version: '1.0.0',
@@ -22,4 +22,3 @@ export const RARITY_BANDS = Object.freeze([
 ]);
 
 export const PLACEHOLDER_VALUES = new Set(['none']);
-

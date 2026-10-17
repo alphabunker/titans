@@ -106,6 +106,31 @@ export function assertAnalyticsSnapshot(analytics) {
   requireCondition(isRecord(analytics.pairFrequencies), 'analytics.pairFrequencies', 'must be an object');
   requireCondition(isRecord(analytics.rarityBands), 'analytics.rarityBands', 'must be an object');
   requireCondition(isRecord(analytics.indexes), 'analytics.indexes', 'must be an object');
+  requireCondition(Array.isArray(analytics.indexes.assetIds), 'analytics.indexes.assetIds', 'must be an array');
+  requireCondition(analytics.indexes.assetIds.length === analytics.assetCount, 'analytics.indexes.assetIds', 'must contain one id per asset');
+  requireCondition(analytics.indexes.assetIds.every(isAssetId), 'analytics.indexes.assetIds', 'must contain only verified-policy asset IDs');
+  requireCondition(new Set(analytics.indexes.assetIds).size === analytics.assetCount, 'analytics.indexes.assetIds', 'must not contain duplicates');
+  requireCondition(Array.isArray(analytics.indexes.traitsByAsset), 'analytics.indexes.traitsByAsset', 'must be an array');
+  requireCondition(analytics.indexes.traitsByAsset.length === analytics.assetCount, 'analytics.indexes.traitsByAsset', 'must contain one trait list per asset');
+  requireCondition(analytics.indexes.traitsByAsset.every(keys => Array.isArray(keys) && keys.every(isString)), 'analytics.indexes.traitsByAsset', 'must contain trait-key arrays');
+  requireCondition(isRecord(analytics.indexes.byTrait), 'analytics.indexes.byTrait', 'must be an object');
+  requireCondition(isRecord(analytics.indexes.byClass), 'analytics.indexes.byClass', 'must be an object');
+  requireCondition(isRecord(analytics.indexes.pyramid), 'analytics.indexes.pyramid', 'must be an object');
+  requireCondition(isRecord(analytics.indexes.miniCollections), 'analytics.indexes.miniCollections', 'must be an object');
+  const validIndexes = indexes => Array.isArray(indexes)
+    && indexes.every(index => isNonNegativeInteger(index) && index < analytics.assetCount);
+  for (const [key, frequency] of Object.entries(analytics.traitFrequencies)) {
+    requireCondition(isRecord(frequency), `analytics.traitFrequencies.${key}`, 'must be an object');
+    requireCondition(typeof frequency.placeholderLike === 'boolean', `analytics.traitFrequencies.${key}.placeholderLike`, 'must be a boolean');
+    requireCondition(Array.isArray(frequency.featureExclusions) && frequency.featureExclusions.every(isString), `analytics.traitFrequencies.${key}.featureExclusions`, 'must be a string array');
+    requireCondition(validIndexes(analytics.indexes.byTrait[key]), `analytics.indexes.byTrait.${key}`, 'must contain valid asset positions');
+    requireCondition(frequency.count === analytics.indexes.byTrait[key].length, `analytics.traitFrequencies.${key}.count`, 'must equal its trait index length');
+  }
+  for (const [key, pair] of Object.entries(analytics.pairFrequencies)) {
+    requireCondition(isRecord(pair), `analytics.pairFrequencies.${key}`, 'must be an object');
+    requireCondition(isString(pair.left) && isString(pair.right), `analytics.pairFrequencies.${key}`, 'must identify both traits');
+    requireCondition(isNonNegativeInteger(pair.count), `analytics.pairFrequencies.${key}.count`, 'must be a non-negative integer');
+  }
   return analytics;
 }
 

@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { TextEncoder, TextDecoder } from 'node:util';
+import { assertAnalyticsReconciles } from '../analytics.js';
 import {
   COLLECTION_POLICY_ID,
   COLLECTION_SIZE,
   CONTRACT_VERSION,
-  assertAnalyticsSnapshot,
   assertCollectionSnapshot,
   assertIngestionRun,
   assertSnapshotManifest,
@@ -42,7 +42,7 @@ export class R2SnapshotStore {
 
   async publish({ snapshot, analytics, report, run, normalizationVersion }) {
     assertCollectionSnapshot(snapshot);
-    assertAnalyticsSnapshot(analytics);
+    assertAnalyticsReconciles(snapshot, analytics);
     assertValidationReport(report);
     assertIngestionRun(run);
     if (report.status !== 'valid' || run.status !== 'succeeded') throw new TypeError('Only a valid successful import can be published');

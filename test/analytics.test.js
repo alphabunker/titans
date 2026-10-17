@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildCollectionAnalytics, decodeTraitKey, rarityBandFor } from '../src/analytics.js';
+import { assertAnalyticsReconciles, buildCollectionAnalytics, buildOwnerAnalytics, decodeTraitKey, rarityBandFor } from '../src/analytics.js';
 import { CIP68_USER_LABEL_PREFIX, COLLECTION_POLICY_ID, CONTRACT_VERSION } from '../src/contracts.js';
 
 const makeAsset = (number, traits) => {
@@ -40,6 +40,9 @@ test('pair counts exclude placeholder values and same-category combinations', ()
   const analytics = buildCollectionAnalytics(snapshot, { generatedAt: '2026-10-17T18:01:00.000Z' });
   const pairs = Object.values(analytics.pairFrequencies);
   assert.ok(pairs.every(pair => !pair.left.endsWith('\u001fnone') && !pair.right.endsWith('\u001fnone')));
+  const noneFrequency = Object.values(analytics.traitFrequencies).find(frequency => frequency.normalizedValue === 'none');
+  assert.equal(noneFrequency.placeholderLike, true);
+  assert.deepEqual(noneFrequency.featureExclusions, ['collection-character', 'unexpected-pairings']);
   const humanBlue = pairs.find(pair => pair.left.includes('human') && pair.right.includes('blue') || pair.left.includes('blue') && pair.right.includes('human'));
   assert.equal(humanBlue.count, 1);
 });
@@ -61,3 +64,38 @@ test('versioned mini-collection membership is deterministic from canonical trait
   assert.equal(analytics.indexes.miniCollections['royal-humans'].ruleVersion, 'draft-1');
 });
 
+test('analytics are byte-deterministic for the same snapshot and rule versions', () => {
+  const options = {
+    rulesVersion: 'fortress-1',
+    miniCollections: [{ id: 'royal-humans', name: 'Royal Humans', ruleVersion: 'draft-1', all: [{ category: 'Class', value: 'Royal' }, { category: 'Skin', value: 'Human' }] }],
+  };
+  assert.equal(JSON.stringify(buildCollectionAnalytics(snapshot, options)), JSON.stringify(buildCollectionAnalytics(snapshot, options)));
+  assert.notEqual(
+    JSON.stringify(buildCollectionAnalytics(snapshot, options)),
+    JSON.stringify(buildCollectionAnalytics(snapshot, { ...options, rulesVersion: 'fortress-2' })),
+  );
+});
+
+test('owner analytics need only owned asset IDs and the published indexes', () => {
+  const analytics = buildCollectionAnalytics(snapshot, {
+    miniCollections: [{ id: 'royal-humans', name: 'Royal Humans', ruleVersion: 'draft-1', all: [{ category: 'Class', value: 'Royal' }, { category: 'Skin', value: 'Human' }] }],
+  });
+  const owner = buildOwnerAnalytics([assets[0].assetId, assets[2].assetId, assets[2].assetId, 'unknown'], analytics);
+  const humanKey = Object.keys(analytics.traitFrequencies).find(key => decodeTraitKey(key).normalizedValue === 'human');
+  assert.equal(owner.ownedCount, 2);
+  assert.deepEqual(owner.unknownAssetIds, ['unknown']);
+  assert.equal(owner.traitCounts[humanKey], 1);
+  assert.equal(owner.pyramid.titanCount, 1);
+  assert.equal(owner.pyramid.completed, 0);
+  assert.deepEqual(owner.miniCollections['royal-humans'], { owned: 1, total: 1 });
+  assert.ok(Object.keys(owner.pairCounts).every(key => !key.endsWith('\u001fnone')));
+});
+
+test('serialized indexes reconcile to canonical assets and reject drift', () => {
+  const analytics = buildCollectionAnalytics(snapshot);
+  assert.equal(assertAnalyticsReconciles(snapshot, analytics), analytics);
+  const key = Object.keys(analytics.traitFrequencies)[0];
+  const drifted = structuredClone(analytics);
+  drifted.traitFrequencies[key].count += 1;
+  assert.throws(() => assertAnalyticsReconciles(snapshot, drifted), /count|reconcile/);
+});
