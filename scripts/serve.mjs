@@ -18,11 +18,25 @@ async function localPublicSnapshot() {
  return toPublicCollectionSnapshot(canonical, { activatedAt: pointer.activatedAt });
 }
 
+async function localAnalytics() {
+ const pointer = JSON.parse(await readFile(join(localR2, 'latest.json'), 'utf8'));
+ const manifest = JSON.parse(await readFile(join(localR2, pointer.manifestKey), 'utf8'));
+ if (manifest.snapshotId !== pointer.snapshotId || manifest.contentHash !== pointer.contentHash) throw new TypeError('Local pointer and manifest do not match');
+ const analyticsKey = manifest.artifacts.find(artifact => artifact.kind === 'analytics')?.key;
+ if (!analyticsKey) throw new TypeError('Local analytics artifact is missing');
+ return JSON.parse(await readFile(join(localR2, analyticsKey), 'utf8'));
+}
+
 http.createServer(async (req, res) => {
  try {
   const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   if (pathname === '/api/collection') {
    const body = JSON.stringify(await localPublicSnapshot());
+   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' }).end(body);
+   return;
+  }
+  if (pathname === '/api/analytics') {
+   const body = JSON.stringify(await localAnalytics());
    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' }).end(body);
    return;
   }
@@ -41,7 +55,7 @@ http.createServer(async (req, res) => {
   if (!file.startsWith(root + sep) || !(file === resolve(root, 'index.html') || file.startsWith(resolve(root, 'src') + sep))) { res.writeHead(404).end('Not found'); return; }
   const body = await readFile(file); res.writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' }).end(body);
  } catch (error) {
-  if (req.url?.startsWith('/api/collection')) {
+  if (req.url?.startsWith('/api/collection') || req.url?.startsWith('/api/analytics')) {
    res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }).end(JSON.stringify({ error: 'Collection data is temporarily unavailable.' }));
    return;
   }

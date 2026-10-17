@@ -86,10 +86,16 @@
           <div class="portfolio-actions"><button id="refresh-portfolio" class="secondary-action" type="button">Refresh</button><button id="clear-portfolio" class="text-button" type="button">Clear</button></div>
         </div>
         <div class="portfolio-overview">
-          <div><span>VERIFIED TITANS</span><strong id="portfolio-count">0</strong></div>
-          <div><span>RESULT</span><strong id="portfolio-state">Complete</strong></div>
-          <div><span>LAST CHECKED</span><strong id="portfolio-checked">—</strong></div>
+          <div><span>TITANS</span><strong id="portfolio-count">0</strong></div>
+          <div><span>PERCENT OF THE 6500 COLLECTION</span><strong id="portfolio-percentage">0.00%</strong></div>
+          <div><span>CLASSES REPRESENTED</span><strong id="portfolio-classes">0</strong></div>
         </div>
+        <section id="collection-character" class="collection-character" aria-labelledby="character-title" hidden>
+          <div class="character-heading"><div><div class="eyebrow">OWNER INSIGHTS / CHARACTER</div><h2 id="character-title">Your collection’s character</h2></div><p>The traits that stand out in your Titans compared with all 6,500.</p></div>
+          <div id="character-content"></div>
+          <p class="character-method" id="character-method"></p>
+        </section>
+        <p class="portfolio-meta"><span id="portfolio-state">Complete result</span><span>Checked <time id="portfolio-checked">—</time></span></p>
         <div id="portfolio-message" class="portfolio-message"></div>
         <p class="portfolio-footnote">This lookup shows assets held by a public address. It does not prove that the visitor controls that address.</p>
       </section>
@@ -98,5 +104,6 @@
     <footer><span>HOUSE OF TITANS <span class="muted">/ Collection Insights</span></span><a href="https://www.wayup.io/collection/53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad" target="_blank" rel="noopener noreferrer">Collection on Wayup ↗</a></footer>
   </main>
   <dialog id="detail" aria-labelledby="detail-title"><button class="close" id="close-detail" aria-label="Close details">×</button><div id="detail-content"></div></dialog>
+  <dialog id="character-detail" class="character-dialog" aria-labelledby="character-detail-title"><button class="close" id="close-character-detail" aria-label="Close matching Titans">×</button><div id="character-detail-content"></div></dialog>
 </body>
 </html>

@@ -12,6 +12,11 @@ CIP-68 standard and metadata hash, original IPFS URI/CID, all source trait
 values, and compact provider timestamps. Provider payloads, D1/R2 credentials,
 and blockchain-provider credentials are not public fields.
 
+`GET /api/analytics` follows the same active pointer, verifies the matching
+manifest and analytics artifact digest, validates its snapshot ID and asset
+count, and serves the precomputed Fortress indexes. The browser rejects
+analytics that do not identify the same snapshot as `/api/collection`.
+
 ## Cache behavior
 
 - Browser freshness: 60 seconds.
@@ -40,6 +45,8 @@ snapshot.
 - Complete public payload: at most 2 MiB gzip.
 - Search, filter, sort, saved-item, table, grid, and detail interactions operate
   only on the loaded in-memory snapshot and make no blockchain-provider calls.
+- Owner summary, collection-character ranking, and matching-Titan exploration
+  operate on the loaded analytics and owned asset IDs without provider calls.
 - At most 48 result rows/cards are mounted per page on desktop and mobile.
 - Images begin loading near the viewport; paging replaces the prior result DOM
   rather than accumulating all 6,500 images.

@@ -84,11 +84,38 @@ test('owner analytics need only owned asset IDs and the published indexes', () =
   const humanKey = Object.keys(analytics.traitFrequencies).find(key => decodeTraitKey(key).normalizedValue === 'human');
   assert.equal(owner.ownedCount, 2);
   assert.deepEqual(owner.unknownAssetIds, ['unknown']);
+  assert.deepEqual(owner.summary, {
+    titans: 2,
+    collectionPercentage: 0.03,
+    classesRepresented: 2,
+    classValues: ['royal', 'titan'],
+    denominator: 6500,
+    percentagePrecision: 2,
+  });
+  assert.equal(owner.character.lowEvidence, true);
+  assert.deepEqual(owner.character.highlights, []);
   assert.equal(owner.traitCounts[humanKey], 1);
   assert.equal(owner.pyramid.titanCount, 1);
   assert.equal(owner.pyramid.completed, 0);
   assert.deepEqual(owner.miniCollections['royal-humans'], { owned: 1, total: 1 });
   assert.ok(Object.keys(owner.pairCounts).every(key => !key.endsWith('\u001fnone')));
+});
+
+test('collection character applies minimum evidence, lift, representative, and deterministic ranking rules', () => {
+  const analytics = buildCollectionAnalytics(snapshot);
+  const owner = buildOwnerAnalytics([assets[0].assetId, assets[1].assetId, assets[3].assetId], analytics);
+  assert.equal(owner.summary.titans, 3);
+  assert.equal(owner.summary.collectionPercentage, 0.05);
+  assert.equal(owner.summary.classesRepresented, 3);
+  assert.equal(owner.character.ruleVersion, '1.0.0');
+  assert.equal(owner.character.lowEvidence, false);
+  assert.equal(owner.character.minimumOwnedCount, 2);
+  assert.deepEqual(owner.character.highlights.map(highlight => highlight.value), ['Human']);
+  assert.equal(owner.character.highlights[0].ownedCount, 3);
+  assert.equal(owner.character.highlights[0].collectionCount, 3);
+  assert.equal(owner.character.highlights[0].lift, 1.3333);
+  assert.equal(owner.character.highlights[0].representativeIndex, 0);
+  assert.deepEqual(owner.character.highlights[0].matchingOwnedIndexes, [0, 1, 3]);
 });
 
 test('serialized indexes reconcile to canonical assets and reject drift', () => {

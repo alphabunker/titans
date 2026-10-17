@@ -1,4 +1,5 @@
-import { publicCollectionProvider, snapshotItems } from './data.js';
+import { buildOwnerAnalytics } from './analytics.js';
+import { publicAnalyticsProvider, publicCollectionProvider, snapshotItems } from './data.js';
 import { collectionSummary, explore, traitOptionCounts } from './explorer.js';
 import { connectCip30Wallet, listCip30Wallets, lookupPortfolio } from './fortress-entry.js';
 import { createTitanImage, readMediaConfig, resolveIpfsImageUrl } from './media.js';
@@ -9,6 +10,7 @@ const STALE_AFTER_MS = 48 * 60 * 60 * 1000;
 const mediaConfig = readMediaConfig();
 let items = [];
 let snapshot = null;
+let analytics = null;
 let traitCounts = {};
 let fortressSession = null;
 let discoveredWallets = [];
@@ -61,6 +63,34 @@ function showDetail(item) {
   content.replaceChildren(...children);
   $('#detail').showModal();
   $('#close-detail').focus();
+}
+
+function itemAtAnalyticsIndex(index) {
+  const assetId = analytics?.indexes.assetIds[index];
+  return items.find(item => item.id === assetId) ?? null;
+}
+
+function showCharacterDetail(highlight) {
+  const content = $('#character-detail-content');
+  const title = el('h2', `${highlight.value} in your collection`);
+  title.id = 'character-detail-title';
+  const intro = el('p', `${highlight.ownedCount.toLocaleString()} owned ${highlight.ownedCount === 1 ? 'Titan has' : 'Titans have'} this ${highlight.category} trait.`, 'muted');
+  const grid = el('div', undefined, 'character-dialog-grid');
+  for (const index of highlight.matchingOwnedIndexes) {
+    const item = itemAtAnalyticsIndex(index);
+    if (!item) continue;
+    const card = el('article', undefined, 'character-dialog-card');
+    const button = el('button', undefined, 'card-open');
+    button.type = 'button';
+    button.setAttribute('aria-label', `View ${item.name}`);
+    button.append(art(item));
+    button.onclick = () => { $('#character-detail').close(); showDetail(item); };
+    card.append(button, el('h3', item.name), el('p', item.number ? `Titan #${item.number}` : 'Verified Titan', 'muted'));
+    grid.append(card);
+  }
+  content.replaceChildren(el('div', 'COLLECTION CHARACTER', 'eyebrow'), title, intro, grid);
+  $('#character-detail').showModal();
+  $('#close-character-detail').focus();
 }
 
 function saveFavorites() {
@@ -259,6 +289,11 @@ async function initialize() {
     items = snapshotItems(snapshot);
     traitCounts = traitOptionCounts(items);
     try {
+      analytics = await publicAnalyticsProvider.getSnapshot({ expectedSnapshotId: snapshot.snapshotId });
+    } catch {
+      analytics = null;
+    }
+    try {
       const saved = JSON.parse(localStorage.getItem('titans-saved-v1') || '[]');
       if (Array.isArray(saved)) state.favorites = saved.filter(id => items.some(item => item.id === id));
     } catch { /* Storage is optional; the explorer still works in memory. */ }
@@ -353,26 +388,88 @@ function errorTitle(code) {
 
 function renderPortfolio(session, portfolio) {
   fortressSession = { ...session, portfolio };
+  const owner = analytics ? buildOwnerAnalytics(portfolio.assetIds, analytics) : null;
+  const canonicalOwned = owner?.summary.titans ?? portfolio.assetIds.filter(assetId => items.some(item => item.id === assetId)).length;
   $('#portfolio-source').textContent = session.kind === 'wallet' ? `${session.label.toUpperCase()} / CONNECTED WALLET` : 'MANUALLY ENTERED ADDRESS';
-  $('#portfolio-result-title').textContent = portfolio.assetIds.length ? 'Your gate is open' : 'The gate is open';
-  $('#portfolio-count').textContent = portfolio.assetIds.length.toLocaleString();
-  $('#portfolio-state').textContent = portfolio.status === 'partial' ? 'Partial' : 'Complete';
+  $('#portfolio-result-title').textContent = canonicalOwned ? 'Your gate is open' : 'The gate is open';
+  $('#portfolio-count').textContent = canonicalOwned.toLocaleString();
+  $('#portfolio-percentage').textContent = owner ? `${owner.summary.collectionPercentage.toFixed(owner.summary.percentagePrecision)}%` : `${((canonicalOwned / 6500) * 100).toFixed(2)}%`;
+  $('#portfolio-classes').textContent = owner ? owner.summary.classesRepresented.toLocaleString() : new Set(portfolio.assetIds.flatMap(assetId => {
+    const value = items.find(item => item.id === assetId)?.traits.Class;
+    return value ? [value] : [];
+  })).size.toLocaleString();
+  $('#portfolio-state').textContent = portfolio.status === 'partial' ? 'Partial result' : 'Complete result';
   $('#portfolio-checked').textContent = formatDate(portfolio.retrievedAt);
   $('#clear-portfolio').textContent = session.kind === 'wallet' ? 'Disconnect' : 'Clear';
   const message = $('#portfolio-message');
-  message.className = `portfolio-message ${portfolio.status === 'partial' ? 'is-partial' : portfolio.assetIds.length ? 'has-titans' : 'is-empty'}`;
+  message.className = `portfolio-message ${portfolio.status === 'partial' ? 'is-partial' : canonicalOwned ? 'has-titans' : 'is-empty'}`;
   message.replaceChildren(
-    el('strong', portfolio.status === 'partial' ? 'Partial holdings returned' : portfolio.assetIds.length ? `${portfolio.assetIds.length.toLocaleString()} verified ${portfolio.assetIds.length === 1 ? 'Titan' : 'Titans'} found` : 'No Titans found'),
+    el('strong', portfolio.status === 'partial' ? 'Partial holdings returned' : canonicalOwned ? `${canonicalOwned.toLocaleString()} verified ${canonicalOwned === 1 ? 'Titan' : 'Titans'} found` : 'No Titans found'),
     el('span', portfolio.status === 'partial'
       ? 'Some account addresses could not be checked. Refresh before relying on this count.'
-      : portfolio.assetIds.length
+      : canonicalOwned
         ? 'The verified asset IDs are ready for the owner insights that follow in The Fortress.'
         : 'This address has no current holdings under the verified House of Titans policy.'),
   );
+  renderCollectionCharacter(owner, portfolio);
   $('#portfolio-result').hidden = false;
   if (portfolio.status === 'partial') showFortressStatus('PARTIAL RESULT', 'Some holdings were resolved, but the provider could not complete every address batch.', 'warning');
   else hideFortressStatus();
   $('#portfolio-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderCollectionCharacter(owner, portfolio) {
+  const section = $('#collection-character');
+  const root = $('#character-content');
+  root.replaceChildren();
+  section.hidden = false;
+  if (!owner) {
+    const state = el('div', undefined, 'character-empty');
+    state.append(el('strong', 'Collection character is temporarily unavailable'), el('span', 'The verified holdings are shown above, but the matching collection analytics could not be loaded.'));
+    root.append(state);
+    $('#character-method').textContent = '';
+    return;
+  }
+  if (owner.summary.titans === 0) {
+    const state = el('div', undefined, 'character-empty');
+    state.append(el('strong', 'No collection character yet'), el('span', 'This address holds no verified Titans. The Fortress remains open without an ownership requirement.'));
+    root.append(state);
+  } else if (owner.character.lowEvidence) {
+    const state = el('div', undefined, 'character-empty');
+    state.append(
+      el('strong', 'A little more evidence is needed'),
+      el('span', `This portfolio has ${owner.summary.titans} ${owner.summary.titans === 1 ? 'Titan' : 'Titans'}. At least ${owner.character.minimumWalletSize} are required before repeated traits are presented as collection character.`),
+    );
+    root.append(state);
+  } else if (!owner.character.highlights.length) {
+    const state = el('div', undefined, 'character-empty');
+    state.append(el('strong', 'No repeated traits meet the current threshold'), el('span', `Highlights require at least ${owner.character.minimumOwnedCount} owned Titans with the same non-placeholder trait and at least 1.10× collection lift.`));
+    root.append(state);
+  } else {
+    const grid = el('div', undefined, 'character-grid');
+    for (const highlight of owner.character.highlights) {
+      const representative = itemAtAnalyticsIndex(highlight.representativeIndex);
+      if (!representative) continue;
+      const card = el('article', undefined, 'character-card');
+      const visual = el('div', undefined, 'character-visual');
+      visual.append(art(representative));
+      const body = el('div', undefined, 'character-card-body');
+      body.append(
+        el('span', highlight.category.toUpperCase(), 'eyebrow'),
+        el('h3', highlight.value),
+        el('strong', `${highlight.lift.toFixed(2)}× your collection share`, 'character-lift'),
+        el('p', `${highlight.ownedCount.toLocaleString()} of your Titans · ${highlight.collectionCount.toLocaleString()} of 6,500`, 'muted'),
+      );
+      const open = el('button', `View your ${highlight.ownedCount.toLocaleString()} matching ${highlight.ownedCount === 1 ? 'Titan' : 'Titans'}`, 'character-open');
+      open.type = 'button';
+      open.onclick = () => showCharacterDetail(highlight);
+      body.append(open);
+      card.append(visual, body);
+      grid.append(card);
+    }
+    root.append(grid);
+  }
+  $('#character-method').textContent = `Lift compares this portfolio’s trait share with the full collection. Rules ${owner.character.ruleVersion} · minimum ${owner.character.minimumOwnedCount} matching Titans · minimum 1.10× lift${portfolio.status === 'partial' ? ' · based on partial holdings' : ''}.`;
 }
 
 async function resolveFortressSession(session) {
@@ -380,6 +477,9 @@ async function resolveFortressSession(session) {
   showFortressStatus('CHECKING HOLDINGS', 'Resolving current House of Titans assets from Cardano…', 'loading');
   try {
     const portfolio = await lookupPortfolio(session.address);
+    if (!analytics && snapshot) {
+      try { analytics = await publicAnalyticsProvider.getSnapshot({ expectedSnapshotId: snapshot.snapshotId }); } catch { /* The holdings result remains usable. */ }
+    }
     renderPortfolio(session, portfolio);
   } catch (error) {
     showFortressStatus(errorTitle(error.code), error.message || 'The portfolio could not be resolved.', 'error');
@@ -404,6 +504,7 @@ async function beginWalletSession(wallet) {
 function clearFortressSession() {
   fortressSession = null;
   $('#portfolio-result').hidden = true;
+  $('#collection-character').hidden = true;
   $('#address-form').reset();
   hideFortressStatus();
   $('#fortress-entry-title').focus({ preventScroll: true });
@@ -432,6 +533,8 @@ for (const view of ['grid', 'table']) {
 }
 $('#close-detail').onclick = () => $('#detail').close();
 $('#detail').onclick = event => { if (event.target === $('#detail')) $('#detail').close(); };
+$('#close-character-detail').onclick = () => $('#character-detail').close();
+$('#character-detail').onclick = event => { if (event.target === $('#character-detail')) $('#character-detail').close(); };
 
 $('#address-form').onsubmit = async event => {
   event.preventDefault();

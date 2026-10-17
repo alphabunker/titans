@@ -52,4 +52,31 @@ changes.
 
 ## Rule versions
 
-`src/fortress-rules.js` owns the initial Pyramid and rarity boundaries. Mini-collection rules are supplied as approved configuration and embedded with their own version. A change to calculation semantics increments `FORTRESS_RULES_VERSION` and regenerates the analytics artifact. Rules version 1.1.0 adds explicit placeholder flags and the owner-only lookup indexes; it does not change the approved Pyramid or rarity thresholds.
+`src/fortress-rules.js` owns the initial Pyramid, rarity, and collection-character boundaries. Mini-collection rules are supplied as approved configuration and embedded with their own version. A change to precomputed analytics semantics increments `FORTRESS_RULES_VERSION` and regenerates the analytics artifact; browser-only feature rules carry their own version. Rules version 1.1.0 adds explicit placeholder flags and the owner-only lookup indexes; it does not change the approved Pyramid or rarity thresholds.
+
+## Owner summary and collection character
+
+The owner summary counts only portfolio asset IDs present in the active
+canonical analytics index. Its collection percentage uses 6,500 as the fixed
+denominator and displays two decimal places. Classes represented is the number
+of distinct normalized on-chain `Class` values among those owned assets.
+
+Collection-character rule `1.0.0` is defined in `src/fortress-rules.js`:
+
+- fewer than three owned Titans produces a low-evidence state and no trait
+  highlights;
+- wallets with three through nine Titans require at least two matching owned
+  Titans; wallets with ten or more require at least three;
+- placeholder-like values and traits excluded from collection character are
+  omitted;
+- a highlight must have at least `1.10×` lift, where lift is the owner's trait
+  share divided by the complete collection's trait share;
+- results are ordered by lift descending, owned count descending, collection
+  count ascending, category ascending, then value ascending, and are limited
+  to four;
+- the first matching owned asset in canonical index order supplies the
+  representative image, while every matching owned index remains available to
+  the local detail interaction.
+
+Changing highlights or opening matching Titans reads only in-memory indexes and
+does not call Koios or another blockchain provider.

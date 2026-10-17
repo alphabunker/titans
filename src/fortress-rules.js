@@ -22,3 +22,13 @@ export const RARITY_BANDS = Object.freeze([
 ]);
 
 export const PLACEHOLDER_VALUES = new Set(['none']);
+
+export const COLLECTION_CHARACTER_RULE = Object.freeze({
+  version: '1.0.0',
+  maximumHighlights: 4,
+  minimumWalletSize: 3,
+  mediumWalletSize: 10,
+  minimumLift: 1.1,
+  minimumOwnedCount: Object.freeze({ small: 2, medium: 3 }),
+  tieBreakers: Object.freeze(['lift-desc', 'owned-count-desc', 'collection-count-asc', 'category-asc', 'value-asc']),
+});

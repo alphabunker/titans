@@ -1,3 +1,4 @@
+import { assertAnalyticsSnapshot } from './contracts.js';
 import { assertPublicCollectionSnapshot } from './public-snapshot.js';
 
 export const collection = {
@@ -33,5 +34,26 @@ export async function fetchPublicCollection({
 export const publicCollectionProvider = {
   async getSnapshot(options) {
     return fetchPublicCollection(options);
+  },
+};
+
+export async function fetchPublicAnalytics({
+  endpoint = '/api/analytics',
+  expectedSnapshotId,
+  fetchImpl = (...args) => globalThis.fetch(...args),
+} = {}) {
+  const response = await fetchImpl(endpoint, {
+    headers: { accept: 'application/json' },
+    credentials: 'same-origin',
+  });
+  if (!response.ok) throw new TypeError(`Analytics request failed with HTTP ${response.status}`);
+  const analytics = assertAnalyticsSnapshot(await response.json());
+  if (expectedSnapshotId && analytics.snapshotId !== expectedSnapshotId) throw new TypeError('Analytics do not match the active collection snapshot');
+  return analytics;
+}
+
+export const publicAnalyticsProvider = {
+  async getSnapshot(options) {
+    return fetchPublicAnalytics(options);
   },
 };

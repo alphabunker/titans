@@ -1,5 +1,5 @@
-import { CONTRACT_VERSION, assertAnalyticsSnapshot, assertCollectionSnapshot } from './contracts.js';
-import { FORTRESS_RULES_VERSION, PLACEHOLDER_VALUES, PYRAMID_RULE, RARITY_BANDS } from './fortress-rules.js';
+import { COLLECTION_SIZE, CONTRACT_VERSION, assertAnalyticsSnapshot, assertCollectionSnapshot } from './contracts.js';
+import { COLLECTION_CHARACTER_RULE, FORTRESS_RULES_VERSION, PLACEHOLDER_VALUES, PYRAMID_RULE, RARITY_BANDS } from './fortress-rules.js';
 import { normalizeComparisonKey } from './metadata-normalizer.js';
 
 const KEY_SEPARATOR = '\u001f';
@@ -157,6 +157,44 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
   const traitCounts = Object.fromEntries(Object.entries(analytics.indexes.byTrait)
     .map(([key, indexes]) => [key, intersectionCount(indexes, ownedIndexes)]));
 
+  const classValues = Object.entries(analytics.indexes.byClass)
+    .filter(([, indexes]) => intersectionCount(indexes, ownedIndexes) > 0)
+    .map(([value]) => value)
+    .sort();
+
+  const characterMinimum = ownedIndexes.size < COLLECTION_CHARACTER_RULE.mediumWalletSize
+    ? COLLECTION_CHARACTER_RULE.minimumOwnedCount.small
+    : COLLECTION_CHARACTER_RULE.minimumOwnedCount.medium;
+  const lowEvidence = ownedIndexes.size < COLLECTION_CHARACTER_RULE.minimumWalletSize;
+  const characterHighlights = lowEvidence ? [] : Object.entries(analytics.traitFrequencies)
+    .flatMap(([key, frequency]) => {
+      const ownedCount = traitCounts[key] ?? 0;
+      if (ownedCount < characterMinimum || frequency.placeholderLike || frequency.featureExclusions.includes('collection-character')) return [];
+      const matchingOwnedIndexes = (analytics.indexes.byTrait[key] ?? []).filter(index => ownedIndexes.has(index));
+      const ownerShare = ownedCount / ownedIndexes.size;
+      const collectionShare = frequency.count / analytics.assetCount;
+      const lift = Number((ownerShare / collectionShare).toFixed(4));
+      if (lift < COLLECTION_CHARACTER_RULE.minimumLift) return [];
+      return [{
+        key,
+        category: frequency.category,
+        value: frequency.value,
+        ownedCount,
+        collectionCount: frequency.count,
+        ownerPercentage: Number((ownerShare * 100).toFixed(4)),
+        collectionPercentage: Number((collectionShare * 100).toFixed(4)),
+        lift,
+        representativeIndex: matchingOwnedIndexes[0],
+        matchingOwnedIndexes,
+      }];
+    })
+    .sort((left, right) => right.lift - left.lift
+      || right.ownedCount - left.ownedCount
+      || left.collectionCount - right.collectionCount
+      || left.category.localeCompare(right.category)
+      || left.value.localeCompare(right.value))
+    .slice(0, COLLECTION_CHARACTER_RULE.maximumHighlights);
+
   const pairCounts = {};
   for (const index of ownedIndexes) {
     const pairable = analytics.indexes.traitsByAsset[index]
@@ -187,6 +225,21 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
     ownedCount: ownedIndexes.size,
     ownedIndexes: [...ownedIndexes].sort((left, right) => left - right),
     unknownAssetIds,
+    summary: {
+      titans: ownedIndexes.size,
+      collectionPercentage: Number(((ownedIndexes.size / COLLECTION_SIZE) * 100).toFixed(2)),
+      classesRepresented: classValues.length,
+      classValues,
+      denominator: COLLECTION_SIZE,
+      percentagePrecision: 2,
+    },
+    character: {
+      ruleVersion: COLLECTION_CHARACTER_RULE.version,
+      lowEvidence,
+      minimumWalletSize: COLLECTION_CHARACTER_RULE.minimumWalletSize,
+      minimumOwnedCount: characterMinimum,
+      highlights: characterHighlights,
+    },
     traitCounts,
     pairCounts,
     rarityBands: Object.fromEntries(Object.entries(analytics.rarityBands).map(([band, keys]) => [band, {
