@@ -791,8 +791,8 @@ function renderPortfolio(session, portfolio) {
   fortressSession = { ...session, portfolio };
   const owner = analytics ? buildOwnerAnalytics(portfolio.assetIds, analytics) : null;
   const canonicalOwned = owner?.summary.titans ?? portfolio.assetIds.filter(assetId => items.some(item => item.id === assetId)).length;
+  $('#fortress-title-prefix').textContent = 'Welcome to the';
   $('#portfolio-source').textContent = session.kind === 'wallet' ? `${session.label.toUpperCase()} · CONNECTED WALLET` : 'MANUALLY ENTERED ADDRESS';
-  $('#portfolio-result-title').textContent = canonicalOwned ? 'Your gate is open' : 'The gate is open';
   $('#portfolio-count').textContent = canonicalOwned.toLocaleString();
   $('#portfolio-percentage').textContent = owner ? `${owner.summary.collectionPercentage.toFixed(owner.summary.percentagePrecision)}%` : `${((canonicalOwned / 6500) * 100).toFixed(2)}%`;
   $('#portfolio-classes').textContent = owner ? owner.summary.classesRepresented.toLocaleString() : new Set(portfolio.assetIds.flatMap(assetId => {
@@ -1151,6 +1151,7 @@ async function beginWalletSession(wallet) {
 
 function clearFortressSession() {
   fortressSession = null;
+  $('#fortress-title-prefix').textContent = 'Enter the';
   $('#portfolio-result').hidden = true;
   $('#fortress-entry').hidden = false;
   $('#collection-character').hidden = true;
