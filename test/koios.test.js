@@ -74,3 +74,47 @@ test('Koios evidence resolves label 222 and its reference-token identity', () =>
 test('stable JSON hashing is independent of object key order', () => {
   assert.equal(sha256Json({ a: 1, b: 2 }), sha256Json({ b: 2, a: 1 }));
 });
+
+test('Koios holdings resolves a payment address to all account addresses and filters to Titan user tokens', async () => {
+  const paymentAddress = 'addr1qy2jt0qpqz2z2z9zx5w4xemekkce7yderz53kjue53lpqv90lkfa9sgrfjuz6uvt4uqtrqhl2kj0a9lnr9ndzutx32gqleeckv';
+  const stakeAddress = 'stake1uyrx65wjqjgeeksd8hptmcgl5jfyrqkfq0xe8xlp367kphsckq250';
+  const calls = [];
+  const provider = new KoiosProvider({ retries: 0, fetchImpl: async (url, init) => {
+    calls.push({ url, body: JSON.parse(init.body) });
+    if (url.endsWith('/address_info')) return response([{ address: paymentAddress, stake_address: stakeAddress }]);
+    if (url.endsWith('/account_addresses')) return response([{ stake_address: stakeAddress, addresses: [paymentAddress, paymentAddress] }]);
+    return response([
+      { address: paymentAddress, policy_id: COLLECTION_POLICY_ID, asset_name: userName, quantity: '1' },
+      { address: paymentAddress, policy_id: COLLECTION_POLICY_ID, asset_name: referenceName, quantity: '1' },
+      { address: paymentAddress, policy_id: '0'.repeat(56), asset_name: userName, quantity: '1' },
+    ]);
+  } });
+  const result = await provider.fetchAddressAssets([paymentAddress]);
+  assert.deepEqual(result.assetIds, [`${COLLECTION_POLICY_ID}${userName}`]);
+  assert.equal(result.resolvedAddressCount, 1);
+  assert.deepEqual(calls.map(call => call.url.split('/').pop()), ['address_info', 'account_addresses', 'address_assets']);
+});
+
+test('Koios holdings treats a valid empty stake account as zero holdings', async () => {
+  const stakeAddress = 'stake1uyrx65wjqjgeeksd8hptmcgl5jfyrqkfq0xe8xlp367kphsckq250';
+  const provider = new KoiosProvider({ retries: 0, fetchImpl: async url => {
+    assert.match(url, /account_addresses$/);
+    return response([]);
+  } });
+  assert.deepEqual(await provider.fetchAddressAssets([stakeAddress]), { assetIds: [], partial: false, resolvedAddressCount: 0 });
+});
+
+test('Koios holdings returns partial results when one resolved-address batch fails', async () => {
+  const stakeAddress = 'stake1uyrx65wjqjgeeksd8hptmcgl5jfyrqkfq0xe8xlp367kphsckq250';
+  const addresses = Array.from({ length: 51 }, (_, index) => `addr1-batch-fixture-${index}`);
+  let assetRequests = 0;
+  const provider = new KoiosProvider({ retries: 0, fetchImpl: async url => {
+    if (url.endsWith('/account_addresses')) return response([{ stake_address: stakeAddress, addresses }]);
+    assetRequests += 1;
+    if (assetRequests === 2) throw new Error('simulated batch failure');
+    return response([{ address: addresses[0], policy_id: COLLECTION_POLICY_ID, asset_name: userName, quantity: '1' }]);
+  } });
+  const result = await provider.fetchAddressAssets([stakeAddress]);
+  assert.equal(result.partial, true);
+  assert.deepEqual(result.assetIds, [`${COLLECTION_POLICY_ID}${userName}`]);
+});

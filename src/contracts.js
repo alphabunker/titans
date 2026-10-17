@@ -199,6 +199,8 @@ export function assertPortfolioResponse(portfolio) {
   requireCondition(portfolio.network === 'mainnet', 'portfolio.network', 'must equal mainnet');
   requireCondition(isIsoDate(portfolio.retrievedAt), 'portfolio.retrievedAt', 'must be an ISO-compatible timestamp');
   requireCondition(['complete', 'partial'].includes(portfolio.status), 'portfolio.status', 'must be complete or partial');
+  requireCondition(['payment', 'stake'].includes(portfolio.addressKind), 'portfolio.addressKind', 'must be payment or stake');
+  requireCondition(portfolio.ownershipProof === false, 'portfolio.ownershipProof', 'must be false for an address lookup');
   requireCondition(Array.isArray(portfolio.assetIds), 'portfolio.assetIds', 'must be an array');
   requireCondition(portfolio.assetIds.every(isAssetId), 'portfolio.assetIds', 'must contain only verified-policy hexadecimal asset IDs');
   requireCondition(new Set(portfolio.assetIds).size === portfolio.assetIds.length, 'portfolio.assetIds', 'must not contain duplicates');
@@ -209,7 +211,7 @@ export function assertPortfolioResponse(portfolio) {
  * @typedef {Object} MetadataProvider
  * @property {(options?: {cursor?: string, limit?: number}) => Promise<{assetIds: string[], nextCursor: string|null}>} listPolicyAssets
  * @property {(assetIds: string[]) => Promise<unknown[]>} fetchAssetMetadata
- * @property {(addresses: string[]) => Promise<{assetIds: string[], partial: boolean}>} fetchAddressAssets
+ * @property {(addresses: string[]) => Promise<{assetIds: string[], partial: boolean, resolvedAddressCount?: number}>} fetchAddressAssets
  *
  * Provider implementations translate vendor payloads into importer input. They
  * never return credentials and never become the public browser contract.

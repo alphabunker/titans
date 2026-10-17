@@ -82,11 +82,14 @@ test('portfolio contract accepts only unique mainnet collection asset IDs', () =
     network: 'mainnet',
     retrievedAt: '2026-10-17T18:10:00.000Z',
     status: 'complete',
+    addressKind: 'stake',
+    ownershipProof: false,
     assetIds: [asset.assetId],
   };
   assert.equal(assertPortfolioResponse(portfolio), portfolio);
   assert.throws(() => assertPortfolioResponse({ ...portfolio, assetIds: [asset.assetId, asset.assetId] }), /duplicates/);
   assert.throws(() => assertPortfolioResponse({ ...portfolio, network: 'preprod' }), /mainnet/);
+  assert.throws(() => assertPortfolioResponse({ ...portfolio, ownershipProof: true }), /must be false/);
 });
 
 test('ingestion run requires terminal completion timestamps and non-negative counts', () => {

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { COLLECTION_POLICY_ID } from '../contracts.js';
+import { COLLECTION_POLICY_ID, CIP68_USER_LABEL_PREFIX } from '../contracts.js';
+import { parseCardanoAddress } from '../cardano-address.js';
 import { CIP67_LABEL_PREFIXES, decodeCip68Metadata, parseCip67Label } from '../metadata-normalizer.js';
 
 const DEFAULT_BASE_URL = 'https://api.koios.rest/api/v1';
@@ -122,5 +123,60 @@ export class KoiosProvider {
     const rows = await this.request('/asset_info', { method: 'POST', body: JSON.stringify(body) });
     if (!Array.isArray(rows)) throw new TypeError('Koios asset_info response must be an array');
     return rows;
+  }
+
+  async resolvePaymentAddresses(address) {
+    const parsed = parseCardanoAddress(address);
+    if (parsed.kind === 'stake') {
+      const rows = await this.request('/account_addresses', {
+        method: 'POST',
+        body: JSON.stringify({ _stake_addresses: [parsed.address], _first_only: false, _empty: false }),
+      });
+      if (!Array.isArray(rows)) throw new TypeError('Koios account_addresses response must be an array');
+      return [...new Set(rows.flatMap(row => Array.isArray(row?.addresses) ? row.addresses : []))];
+    }
+
+    const rows = await this.request('/address_info', {
+      method: 'POST',
+      body: JSON.stringify({ _addresses: [parsed.address] }),
+    });
+    if (!Array.isArray(rows)) throw new TypeError('Koios address_info response must be an array');
+    const stakeAddress = rows.find(row => row?.address === parsed.address)?.stake_address ?? rows[0]?.stake_address;
+    if (!stakeAddress) return [parsed.address];
+    const accountRows = await this.request('/account_addresses', {
+      method: 'POST',
+      body: JSON.stringify({ _stake_addresses: [stakeAddress], _first_only: false, _empty: false }),
+    });
+    if (!Array.isArray(accountRows)) throw new TypeError('Koios account_addresses response must be an array');
+    return [...new Set([parsed.address, ...accountRows.flatMap(row => Array.isArray(row?.addresses) ? row.addresses : [])])];
+  }
+
+  async fetchAddressAssets(addresses) {
+    if (!Array.isArray(addresses) || addresses.length !== 1) throw new TypeError('Exactly one payment or stake address is required');
+    const paymentAddresses = await this.resolvePaymentAddresses(addresses[0]);
+    if (!paymentAddresses.length) return { assetIds: [], partial: false, resolvedAddressCount: 0 };
+    const chunks = [];
+    for (let index = 0; index < paymentAddresses.length; index += 50) chunks.push(paymentAddresses.slice(index, index + 50));
+    const results = await Promise.allSettled(chunks.map(chunk => this.request('/address_assets', {
+      method: 'POST',
+      body: JSON.stringify({ _addresses: chunk }),
+    })));
+    const successful = results.filter(result => result.status === 'fulfilled' && Array.isArray(result.value));
+    if (!successful.length) {
+      const rejected = results.find(result => result.status === 'rejected');
+      throw rejected?.reason ?? new TypeError('Koios address_assets response must be an array');
+    }
+    const rows = successful.flatMap(result => result.value);
+    const assetIds = rows.flatMap(row => {
+      if (row?.policy_id !== COLLECTION_POLICY_ID || typeof row.asset_name !== 'string' || Number(row.quantity) <= 0) return [];
+      const assetName = row.asset_name.toLowerCase();
+      if (!assetName.startsWith(CIP68_USER_LABEL_PREFIX) || assetName.length <= 8 || assetName.length > 64 || assetName.length % 2 !== 0 || !/^[0-9a-f]+$/.test(assetName)) return [];
+      return [`${COLLECTION_POLICY_ID}${assetName}`];
+    });
+    return {
+      assetIds: [...new Set(assetIds)].sort(),
+      partial: successful.length !== results.length,
+      resolvedAddressCount: paymentAddresses.length,
+    };
   }
 }
