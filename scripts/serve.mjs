@@ -5,7 +5,7 @@ import { handlePortfolioRequest } from '../functions/api/portfolio.js';
 import { buildHealthReport } from '../functions/api/health.js';
 import { toPublicCollectionSnapshot } from '../src/public-snapshot.js';
 const root = resolve(import.meta.dirname, '..');
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.webp': 'image/webp' };
 const port = Number(process.env.PORT || 5173);
 const localR2 = resolve(process.env.TITANS_LOCAL_R2_DIR || join(root, '.data/publication-story8/r2'));
 
