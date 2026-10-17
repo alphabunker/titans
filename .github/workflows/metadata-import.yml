@@ -1,0 +1,48 @@
+name: Metadata import
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Import mode
+        required: true
+        default: manual
+        type: choice
+        options: [manual, bootstrap, incremental]
+  schedule:
+    - cron: "17 7 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: house-of-titans-metadata-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run check
+      - run: npm test
+      - name: Import candidate snapshot
+        env:
+          KOIOS_API_URL: https://api.koios.rest/api/v1
+          KOIOS_API_TOKEN: ${{ secrets.KOIOS_API_TOKEN }}
+          IMPORT_MODE: ${{ inputs.mode || 'incremental' }}
+        run: npm run import:collection -- --mode "$IMPORT_MODE" --output .data/import
+      - name: Retain candidate and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metadata-import-${{ github.run_id }}
+          path: .data/import
+          if-no-files-found: error
+          retention-days: 14
+

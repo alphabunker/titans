@@ -17,6 +17,8 @@ npm run check
 npm test
 ```
 
+The real-metadata importer is server-side and requires provider configuration. See `docs/IMPORTER.md`; its local output remains under ignored `.data/` and cannot replace production data.
+
 ## Features
 
 - Responsive grid and horizontally scrollable table views
@@ -34,6 +36,7 @@ The production foundation is documented in:
 - `docs/ARCHITECTURE.md` — system shape, components, contracts, and data flows
 - `docs/CANONICAL_DATA.md` — field provenance, normalization rules, invariants, and versioning
 - `docs/ENVIRONMENTS.md` — local/preview/production and secret boundaries
+- `docs/IMPORTER.md` — Koios ingestion, checkpoint, validation, and workflow behavior
 - `docs/SERVICES.md` — ownership, provisioning, costs, and replacement checklist
 - `docs/adr/` — accepted architecture decisions
 - `.env.example` — names of server-side configuration values, with no credentials
