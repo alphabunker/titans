@@ -62,8 +62,11 @@ test('analytics contract remains tied to a canonical snapshot and rules version'
     contractVersion: CONTRACT_VERSION,
     snapshotId: 'snapshot-1',
     rulesVersion: 'fortress-1',
+    generatedAt: '2026-10-17T18:00:00.000Z',
+    assetCount: 6500,
     traitFrequencies: {},
     pairFrequencies: {},
+    rarityBands: {},
     indexes: {},
   };
   assert.equal(assertAnalyticsSnapshot(analytics), analytics);

@@ -34,6 +34,7 @@ The real-metadata importer is server-side and requires provider configuration. S
 The production foundation is documented in:
 
 - `docs/ARCHITECTURE.md` — system shape, components, contracts, and data flows
+- `docs/ANALYTICS.md` — precomputed traits, pairs, rarity, Pyramid, curated indexes, and payload budget
 - `docs/CANONICAL_DATA.md` — field provenance, normalization rules, invariants, and versioning
 - `docs/ENVIRONMENTS.md` — local/preview/production and secret boundaries
 - `docs/IMPORTER.md` — Koios ingestion, checkpoint, validation, and workflow behavior

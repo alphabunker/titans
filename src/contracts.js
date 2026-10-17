@@ -100,8 +100,11 @@ export function assertAnalyticsSnapshot(analytics) {
   requireCondition(analytics.contractVersion === CONTRACT_VERSION, 'analytics.contractVersion', `must equal ${CONTRACT_VERSION}`);
   requireCondition(isString(analytics.snapshotId), 'analytics.snapshotId', 'must be a non-empty string');
   requireCondition(isString(analytics.rulesVersion), 'analytics.rulesVersion', 'must be a non-empty string');
+  requireCondition(isIsoDate(analytics.generatedAt), 'analytics.generatedAt', 'must be an ISO-compatible timestamp');
+  requireCondition(isNonNegativeInteger(analytics.assetCount), 'analytics.assetCount', 'must be a non-negative integer');
   requireCondition(isRecord(analytics.traitFrequencies), 'analytics.traitFrequencies', 'must be an object');
   requireCondition(isRecord(analytics.pairFrequencies), 'analytics.pairFrequencies', 'must be an object');
+  requireCondition(isRecord(analytics.rarityBands), 'analytics.rarityBands', 'must be an object');
   requireCondition(isRecord(analytics.indexes), 'analytics.indexes', 'must be an object');
   return analytics;
 }
