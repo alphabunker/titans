@@ -4,7 +4,7 @@
 
 | Environment | Data | Infrastructure | Deployment | Secrets |
 | --- | --- | --- | --- | --- |
-| Local | Synthetic fixture or developer-generated non-production snapshot | Local server and Cloudflare emulation when introduced | Developer command only | Ignored `.env`/`.dev.vars`; never committed |
+| Local | Developer-generated validated snapshot projected through `/api/collection` | Local server and ignored R2-shaped artifacts | Developer command only | Ignored `.env`/`.dev.vars`; never committed |
 | Preview | Stable non-production snapshot | Preview Pages project/bindings | Automatic pull-request preview | GitHub preview environment and Cloudflare secret bindings |
 | Production | Validated active canonical snapshot | Production Pages, Worker, D1, R2, and approved gateway | Protected default branch plus separate metadata workflow | Protected GitHub production environment and least-privilege Cloudflare bindings |
 
@@ -46,4 +46,3 @@ Local emulation uses local files and never reuses production identifiers. Exact 
 - Rotate immediately after suspected exposure and according to the owning service's supported schedule.
 - Revoke superseded credentials after the replacement workflow succeeds.
 - A missing credential must fail the server-side operation with a redacted diagnostic; it must not fall back to a browser-visible token.
-

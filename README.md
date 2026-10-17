@@ -1,20 +1,21 @@
 # House of Titans · Collection Insights
 
-A dependency-free, responsive collection explorer prototype. The filter taxonomy is a source-observed snapshot; all 24 item combinations, names, numbers, and geometric artwork are **synthetic samples**, not real Cardano assets, wallet holdings, prices, supply, or rarity rankings.
+A dependency-free, responsive collection explorer backed by the complete validated House of Titans CIP-68 metadata snapshot. The browser receives a compact, same-origin projection of the active immutable snapshot; it never calls a blockchain provider directly.
 
 ## Preview
 
-Requires Node.js 22 or newer. No install or API keys needed.
+Requires Node.js 22 or newer. No install or API keys are needed after generating or obtaining the ignored local snapshot artifacts.
 
 ```sh
 npm run dev
 ```
 
-Open http://localhost:5173 in your desktop browser. Stop with Ctrl+C. The preview server binds to localhost and serves only the page and source assets. No hosting or domain setup is included. On a phone, source and PR review are available on GitHub; running this local preview requires a computer or a development environment with port forwarding.
+Open http://localhost:5173 in your desktop browser. Stop with Ctrl+C. By default, the local server projects the active snapshot under `.data/publication-story8/r2`; override that directory with `TITANS_LOCAL_R2_DIR`.
 
 ```sh
 npm run check
 npm test
+npm run validate:public-snapshot
 ```
 
 The real-metadata importer is server-side and requires provider configuration. See `docs/IMPORTER.md`; its local output remains under ignored `.data/` and cannot replace production data.
@@ -22,14 +23,17 @@ The real-metadata importer is server-side and requires provider configuration. S
 ## Features
 
 - Responsive grid and horizontally scrollable table views
-- Name/number search, 12 verified-vocabulary trait filters, number sorting, reset and empty states
+- Name/number search, metadata-derived trait filters with counts, number sorting, reset and empty states
 - Local saved items (optional browser storage; no wallet implication)
 - NFT detail dialog with native keyboard focus management and Escape dismissal
-- No runtime packages, remote fonts, trackers, credentials, wallet transactions, or backend
+- Lazy, validated IPFS imagery with stable fallbacks and visible CID/URI provenance
+- Explicit loading, current, stale, partial, and unavailable snapshot states
+- Fixed 48-item result pages so all 6,500 records remain searchable without mounting thousands of cards or images
+- No runtime packages, remote fonts, trackers, browser credentials, or wallet transactions
 
 ## Structure and integration boundary
 
-`src/trait-catalog.js` contains the verified taxonomy snapshot. `src/data.js` supplies the async collection provider and synthetic records. Replace that adapter with normalized, verified metadata; keep wallet ownership retrieval in a separate provider. `src/contracts.js` defines executable canonical asset, snapshot, analytics, portfolio, and provider boundaries. `src/explorer.js` owns pure filtering/sorting. `src/app.js` renders with DOM text nodes so metadata is not interpreted as HTML. `src/style.css` owns responsive layout and theme tokens.
+`functions/api/collection.js` reads one active R2 pointer, verifies its matching manifest and canonical artifact, and returns a compact public snapshot with cache headers. `src/public-snapshot.js` defines that browser contract. `src/data.js` validates and maps the same-origin response. `src/contracts.js` defines the canonical asset, snapshot, analytics, portfolio, and provider boundaries. `src/explorer.js` owns pure filtering, counts, and sorting. `src/app.js` renders metadata with DOM text nodes so it is not interpreted as HTML. Wallet ownership retrieval remains a separate provider boundary.
 
 The production foundation is documented in:
 
@@ -38,6 +42,7 @@ The production foundation is documented in:
 - `docs/CANONICAL_DATA.md` — field provenance, normalization rules, invariants, and versioning
 - `docs/ENVIRONMENTS.md` — local/preview/production and secret boundaries
 - `docs/IMPORTER.md` — Koios ingestion, checkpoint, validation, and workflow behavior
+- `docs/PUBLIC_DATA.md` — public snapshot route, cache/version safety, UI states, and performance budgets
 - `docs/STORAGE.md` — D1 schema, immutable R2 layout, activation, and recovery
 - `docs/SERVICES.md` — ownership, provisioning, costs, and replacement checklist
 - `docs/adr/` — accepted architecture decisions
@@ -45,17 +50,17 @@ The production foundation is documented in:
 
 See `docs/PROJECT_CONTEXT.md` and `docs/TRAIT_CATALOG.md` for durable project and provenance notes.
 
-Future integration must verify the collection policy ID and metadata source, paginate large collections, validate remote image URLs, and label data provenance and loading/error states. Do not put API secrets in browser code. Wallet connections are intentionally not implemented.
+Do not put API secrets in browser code. Wallet connections are intentionally not implemented yet.
 
 ## Reference verification / outstanding inputs
 
 - https://mugello.io/collection-insights/ was not retrievable. No claim is made that this prototype reproduces its exact features or layout.
 - The authenticated inventory view at https://app.houseoftitans.io/inventory was inspected on 2026-10-14. The site now uses its verified dark backgrounds, purple accents, and official header logo; the layout and other brand assets remain provisional.
 - Confirmed collection: [House Of Titans on Wayup](https://www.wayup.io/collection/53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad), policy `53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad`. This is the Titans collection, not Strongholds.
-- Verified property names: Back, Background, Class, Eyes, Face, Hand, Head, House, Outfit, Skin, Special, Type, and Trait Count. Values were transcribed from the collection filters at cnft.tools on 2026-10-14. Exact source casing is retained, including `None` and `NONE`. The values are real vocabulary; every current item assignment and combination remains synthetic.
-- Trait Count is cataloged but not assigned or filterable until its calculation is verified against real metadata.
-- Official NFT imagery, trait values, and screenshots of the authenticated reference are still needed for visual fidelity.
+- Canonical metadata currently supplies 12 trait categories: Back, Background, Class, Eyes, Face, Hand, Head, House, Outfit, Skin, Special, and Type. Exact source casing is retained, including `None` and `NONE`.
+- Trait Count remains a historical taxonomy reference but is not assigned or filterable because it is absent from canonical metadata.
+- Names, NFT imagery, and trait values now come from the complete active snapshot. Wallet holdings and owner-specific analytics remain future stories.
 
 ## Validation limits
 
-Automated checks cover JavaScript syntax, filtering, sorting, fixture provenance, taxonomy distinctions, and Trait Count boundaries. Before merging, keep the browser QA record in the pull request current for grid/table at mobile and desktop widths, filter intersections, saved state after reload, keyboard-only navigation, dialog focus/Escape, and empty/reset behavior.
+Automated checks cover JavaScript syntax, canonical/public contracts, pointer-version safety, filtering, counts, sorting, IPFS delivery, and complete-snapshot reconciliation. Browser QA should cover grid/table at mobile and desktop widths, pagination, filter intersections, saved state after reload, keyboard-only navigation, dialog focus/Escape, and empty/reset behavior.

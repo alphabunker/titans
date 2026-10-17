@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "titans-preview-publisher",
+  "name": "titans-preview",
+  "pages_build_output_dir": "./dist",
   "compatibility_date": "2026-10-17",
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [
