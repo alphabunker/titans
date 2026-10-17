@@ -11,9 +11,12 @@ const mediaConfig = readMediaConfig();
 let items = [];
 let snapshot = null;
 let analytics = null;
+let itemsById = new Map();
 let traitCounts = {};
 let fortressSession = null;
 let discoveredWallets = [];
+let pairingReturnFocus = null;
+let pairingDetailTransition = false;
 const state = {
   query: '', traits: {}, favorites: [], favoritesOnly: false, sort: 'asc', view: 'grid', page: 0,
 };
@@ -67,7 +70,7 @@ function showDetail(item) {
 
 function itemAtAnalyticsIndex(index) {
   const assetId = analytics?.indexes.assetIds[index];
-  return items.find(item => item.id === assetId) ?? null;
+  return itemsById.get(assetId) ?? null;
 }
 
 function showCharacterDetail(highlight) {
@@ -91,6 +94,89 @@ function showCharacterDetail(highlight) {
   content.replaceChildren(el('div', 'COLLECTION CHARACTER', 'eyebrow'), title, intro, grid);
   $('#character-detail').showModal();
   $('#close-character-detail').focus();
+}
+
+function pairingTraitLabel(trait) {
+  return `${trait.category}: ${trait.value}`;
+}
+
+function pairingResultCard(item, owned) {
+  const card = el('article', undefined, `pairing-dialog-card${owned ? ' is-owned' : ''}`);
+  const button = el('button', undefined, 'card-open');
+  button.type = 'button';
+  button.setAttribute('aria-label', `View ${item.name}${owned ? ', in your collection' : ''}`);
+  button.append(art(item));
+  button.onclick = () => {
+    pairingDetailTransition = true;
+    $('#pairing-detail').close();
+    showDetail(item);
+  };
+  const copy = el('div', undefined, 'pairing-dialog-card-copy');
+  copy.append(el('h3', item.name), el('p', item.number ? `Titan #${item.number}` : 'Verified Titan', 'muted'));
+  if (owned) copy.append(el('span', 'YOUR TITAN', 'owned-badge'));
+  card.append(button, copy);
+  return card;
+}
+
+function showPairingDetail(pairing, trigger) {
+  pairingReturnFocus = trigger;
+  const content = $('#pairing-detail-content');
+  const title = el('h2', `${pairing.left.value} + ${pairing.right.value}`);
+  title.id = 'pairing-detail-title';
+  const intro = el('p', `${pairing.ownedCount.toLocaleString()} in your collection · ${pairing.collectionCount.toLocaleString()} across all 6,500 Titans.`, 'pairing-dialog-intro');
+  const tablist = el('div', undefined, 'pairing-tabs');
+  tablist.setAttribute('role', 'tablist');
+  tablist.setAttribute('aria-label', 'Pairing results');
+  const collectionTab = el('button', `Meet the collection (${pairing.collectionCount.toLocaleString()})`);
+  const ownedTab = el('button', `Your Titans (${pairing.ownedCount.toLocaleString()})`);
+  const panel = el('div', undefined, 'pairing-results');
+  panel.id = 'pairing-results';
+  panel.setAttribute('role', 'tabpanel');
+  const tabs = [collectionTab, ownedTab];
+  collectionTab.id = 'pairing-collection-tab';
+  ownedTab.id = 'pairing-owned-tab';
+  tabs.forEach(tab => {
+    tab.type = 'button';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-controls', panel.id);
+  });
+  const ownedIndexes = new Set(pairing.matchingOwnedIndexes);
+  const renderView = view => {
+    const activeTab = view === 'collection' ? collectionTab : ownedTab;
+    tabs.forEach(tab => {
+      const selected = tab === activeTab;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    panel.setAttribute('aria-labelledby', activeTab.id);
+    const indexes = view === 'collection' ? pairing.matchingCollectionIndexes : pairing.matchingOwnedIndexes;
+    const grid = el('div', undefined, 'pairing-dialog-grid');
+    for (const index of indexes) {
+      const item = itemAtAnalyticsIndex(index);
+      if (item) grid.append(pairingResultCard(item, ownedIndexes.has(index)));
+    }
+    panel.replaceChildren(grid);
+  };
+  collectionTab.onclick = () => renderView('collection');
+  ownedTab.onclick = () => renderView('owned');
+  tablist.onkeydown = event => {
+    const current = tabs.indexOf(document.activeElement);
+    if (current < 0) return;
+    let next = current;
+    if (event.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    tabs[next].click();
+    tabs[next].focus();
+  };
+  tablist.append(...tabs);
+  content.replaceChildren(el('div', 'UNEXPECTED PAIRING', 'eyebrow'), title, intro, tablist, panel);
+  renderView('collection');
+  $('#pairing-detail').showModal();
+  collectionTab.focus();
 }
 
 function saveFavorites() {
@@ -287,6 +373,7 @@ async function initialize() {
   try {
     snapshot = await publicCollectionProvider.getSnapshot();
     items = snapshotItems(snapshot);
+    itemsById = new Map(items.map(item => [item.id, item]));
     traitCounts = traitOptionCounts(items);
     try {
       analytics = await publicAnalyticsProvider.getSnapshot({ expectedSnapshotId: snapshot.snapshotId });
@@ -412,10 +499,60 @@ function renderPortfolio(session, portfolio) {
         : 'This address has no current holdings under the verified House of Titans policy.'),
   );
   renderCollectionCharacter(owner, portfolio);
+  renderUnexpectedPairings(owner, portfolio);
   $('#portfolio-result').hidden = false;
   if (portfolio.status === 'partial') showFortressStatus('PARTIAL RESULT', 'Some holdings were resolved, but the provider could not complete every address batch.', 'warning');
   else hideFortressStatus();
   $('#portfolio-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderUnexpectedPairings(owner, portfolio) {
+  const section = $('#unexpected-pairings');
+  const root = $('#pairings-content');
+  root.replaceChildren();
+  section.hidden = false;
+  if (!owner) {
+    const empty = el('div', undefined, 'pairings-empty');
+    empty.append(el('strong', 'Unexpected pairings are temporarily unavailable'), el('span', 'The verified holdings are shown above, but the matching collection analytics could not be loaded.'));
+    root.append(empty);
+    $('#pairings-method').textContent = '';
+    return;
+  }
+  if (!owner.summary.titans) {
+    const empty = el('div', undefined, 'pairings-empty');
+    empty.append(el('strong', 'No pairings to meet yet'), el('span', 'This address holds no verified Titans.'));
+    root.append(empty);
+  } else if (!owner.pairings.highlights.length) {
+    const empty = el('div', undefined, 'pairings-empty');
+    empty.append(el('strong', 'No unexpected pairings meet the current rules'), el('span', 'Only cross-category combinations with repeat collection support, low collection frequency, and meaningful owner lift are shown.'));
+    root.append(empty);
+  } else {
+    const grid = el('div', undefined, 'pairings-grid');
+    for (const pairing of owner.pairings.highlights) {
+      const representative = itemAtAnalyticsIndex(pairing.representativeIndex);
+      if (!representative) continue;
+      const card = el('article', undefined, 'pairing-card');
+      const visual = el('div', undefined, 'pairing-visual');
+      visual.append(art(representative));
+      const body = el('div', undefined, 'pairing-card-body');
+      const traits = el('div', undefined, 'pairing-traits');
+      traits.append(el('span', pairingTraitLabel(pairing.left)), el('span', pairingTraitLabel(pairing.right)));
+      body.append(
+        el('h3', representative.name),
+        traits,
+        el('strong', `${pairing.collectionCount.toLocaleString()} Titans share this pairing`, 'pairing-support'),
+        el('p', `${pairing.ownedCount.toLocaleString()} ${pairing.ownedCount === 1 ? 'is' : 'are'} yours · ${pairing.lift.toFixed(2)}× owner lift`, 'muted'),
+      );
+      const open = el('button', 'Meet the pairing', 'pairing-open');
+      open.type = 'button';
+      open.onclick = () => showPairingDetail(pairing, open);
+      body.append(open);
+      card.append(visual, body);
+      grid.append(card);
+    }
+    root.append(grid);
+  }
+  $('#pairings-method').textContent = `Rules ${owner.pairings.ruleVersion} rank pairings by owner lift and collection scarcity. Eligible pairs occur on 2 or more Titans, cover no more than ${owner.pairings.maximumCollectionPercentage}% of the collection, and have at least ${owner.pairings.minimumLift.toFixed(2)}× lift${portfolio.status === 'partial' ? ' · based on partial holdings' : ''}.`;
 }
 
 function renderCollectionCharacter(owner, portfolio) {
@@ -505,6 +642,7 @@ function clearFortressSession() {
   fortressSession = null;
   $('#portfolio-result').hidden = true;
   $('#collection-character').hidden = true;
+  $('#unexpected-pairings').hidden = true;
   $('#address-form').reset();
   hideFortressStatus();
   $('#fortress-entry-title').focus({ preventScroll: true });
@@ -535,6 +673,17 @@ $('#close-detail').onclick = () => $('#detail').close();
 $('#detail').onclick = event => { if (event.target === $('#detail')) $('#detail').close(); };
 $('#close-character-detail').onclick = () => $('#character-detail').close();
 $('#character-detail').onclick = event => { if (event.target === $('#character-detail')) $('#character-detail').close(); };
+$('#close-pairing-detail').onclick = () => $('#pairing-detail').close();
+$('#pairing-detail').onclick = event => { if (event.target === $('#pairing-detail')) $('#pairing-detail').close(); };
+$('#pairing-detail').addEventListener('close', () => {
+  if (pairingDetailTransition) {
+    pairingDetailTransition = false;
+    pairingReturnFocus = null;
+    return;
+  }
+  pairingReturnFocus?.focus();
+  pairingReturnFocus = null;
+});
 
 $('#address-form').onsubmit = async event => {
   event.preventDefault();

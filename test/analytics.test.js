@@ -94,11 +94,49 @@ test('owner analytics need only owned asset IDs and the published indexes', () =
   });
   assert.equal(owner.character.lowEvidence, true);
   assert.deepEqual(owner.character.highlights, []);
+  assert.equal(owner.pairings.ruleVersion, '1.0.0');
   assert.equal(owner.traitCounts[humanKey], 1);
   assert.equal(owner.pyramid.titanCount, 1);
   assert.equal(owner.pyramid.completed, 0);
   assert.deepEqual(owner.miniCollections['royal-humans'], { owned: 1, total: 1 });
   assert.ok(Object.keys(owner.pairCounts).every(key => !key.endsWith('\u001fnone')));
+});
+
+test('unexpected pairings rank deterministically and reconcile complete and owned subsets', () => {
+  const pairAssets = [
+    makeAsset(11, { Class: 'Royal', Skin: 'Human', Eyes: 'Blue' }),
+    makeAsset(12, { Class: 'Royal', Skin: 'Human', Eyes: 'Blue' }),
+    makeAsset(13, { Class: 'Royal', Skin: 'Human', Eyes: 'Green' }),
+    makeAsset(14, { Class: 'Mystic', Skin: 'Alien', Eyes: 'Blue' }),
+    makeAsset(15, { Class: 'Mystic', Skin: 'Alien', Eyes: 'Blue' }),
+    makeAsset(16, { Class: 'Mystic', Skin: 'Alien', Eyes: 'Green' }),
+  ];
+  const fillers = Array.from({ length: 94 }, (_, index) => makeAsset(100 + index, {
+    Class: `Filler ${index}`,
+    Skin: `Stone ${index}`,
+    Eyes: `Ash ${index}`,
+  }));
+  const pairSnapshot = { ...snapshot, assets: [...pairAssets, ...fillers] };
+  const analytics = buildCollectionAnalytics(pairSnapshot);
+  const owner = buildOwnerAnalytics([pairAssets[0].assetId, pairAssets[1].assetId, pairAssets[3].assetId], analytics);
+  assert.equal(owner.pairings.ruleVersion, '1.0.0');
+  assert.equal(owner.pairings.minimumCollectionCount, 2);
+  assert.equal(owner.pairings.maximumCollectionPercentage, 2);
+  const first = owner.pairings.highlights[0];
+  assert.deepEqual([first.left.category, first.left.value, first.right.category, first.right.value], ['Class', 'Royal', 'Eyes', 'Blue']);
+  assert.equal(first.ownedCount, 2);
+  assert.equal(first.collectionCount, 2);
+  assert.equal(first.representativeIndex, 0);
+  assert.deepEqual(first.matchingOwnedIndexes, [0, 1]);
+  assert.deepEqual(first.matchingCollectionIndexes, [0, 1]);
+  assert.ok(first.lift >= 1.25);
+  assert.deepEqual(owner.pairings.highlights.slice(0, 2).map(highlight => [highlight.left.value, highlight.right.value]), [
+    ['Royal', 'Blue'],
+    ['Blue', 'Human'],
+  ]);
+  assert.ok(owner.pairings.highlights.every(highlight => highlight.collectionCount >= 2));
+  assert.ok(owner.pairings.highlights.every(highlight => highlight.matchingCollectionIndexes.length === highlight.collectionCount));
+  assert.ok(owner.pairings.highlights.every(highlight => highlight.matchingOwnedIndexes.length === highlight.ownedCount));
 });
 
 test('collection character applies minimum evidence, lift, representative, and deterministic ranking rules', () => {

@@ -32,3 +32,13 @@ export const COLLECTION_CHARACTER_RULE = Object.freeze({
   minimumOwnedCount: Object.freeze({ small: 2, medium: 3 }),
   tieBreakers: Object.freeze(['lift-desc', 'owned-count-desc', 'collection-count-asc', 'category-asc', 'value-asc']),
 });
+
+export const UNEXPECTED_PAIRINGS_RULE = Object.freeze({
+  version: '1.0.0',
+  maximumHighlights: 3,
+  minimumCollectionCount: 2,
+  maximumCollectionPercentage: 2,
+  minimumLift: 1.25,
+  score: 'lift-times-log2-inverse-collection-share',
+  tieBreakers: Object.freeze(['score-desc', 'owned-count-desc', 'collection-count-asc', 'left-key-asc', 'right-key-asc']),
+});

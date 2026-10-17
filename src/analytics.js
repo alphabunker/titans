@@ -1,5 +1,5 @@
 import { COLLECTION_SIZE, CONTRACT_VERSION, assertAnalyticsSnapshot, assertCollectionSnapshot } from './contracts.js';
-import { COLLECTION_CHARACTER_RULE, FORTRESS_RULES_VERSION, PLACEHOLDER_VALUES, PYRAMID_RULE, RARITY_BANDS } from './fortress-rules.js';
+import { COLLECTION_CHARACTER_RULE, FORTRESS_RULES_VERSION, PLACEHOLDER_VALUES, PYRAMID_RULE, RARITY_BANDS, UNEXPECTED_PAIRINGS_RULE } from './fortress-rules.js';
 import { normalizeComparisonKey } from './metadata-normalizer.js';
 
 const KEY_SEPARATOR = '\u001f';
@@ -140,6 +140,21 @@ function intersectionCount(indexes, ownedIndexes) {
   return count;
 }
 
+function intersectSortedIndexes(left, right) {
+  const matches = [];
+  let leftIndex = 0;
+  let rightIndex = 0;
+  while (leftIndex < left.length && rightIndex < right.length) {
+    if (left[leftIndex] === right[rightIndex]) {
+      matches.push(left[leftIndex]);
+      leftIndex += 1;
+      rightIndex += 1;
+    } else if (left[leftIndex] < right[rightIndex]) leftIndex += 1;
+    else rightIndex += 1;
+  }
+  return matches;
+}
+
 /**
  * Derive owner-specific analytics without a provider or blockchain call.
  * The only visitor-specific input is the list of owned asset IDs.
@@ -210,6 +225,50 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
     }
   }
 
+  const pairingHighlights = Object.entries(pairCounts)
+    .flatMap(([key, ownedCount]) => {
+      const pair = analytics.pairFrequencies[key];
+      if (!pair || ownedCount < 1 || pair.count < UNEXPECTED_PAIRINGS_RULE.minimumCollectionCount) return [];
+      const collectionPercentage = percentage(pair.count, analytics.assetCount);
+      if (collectionPercentage > UNEXPECTED_PAIRINGS_RULE.maximumCollectionPercentage) return [];
+      const ownerShare = ownedCount / ownedIndexes.size;
+      const collectionShare = pair.count / analytics.assetCount;
+      const lift = Number((ownerShare / collectionShare).toFixed(4));
+      if (lift < UNEXPECTED_PAIRINGS_RULE.minimumLift) return [];
+      const [leftKey, rightKey] = [pair.left, pair.right].sort();
+      const matchingCollectionIndexes = intersectSortedIndexes(analytics.indexes.byTrait[leftKey] ?? [], analytics.indexes.byTrait[rightKey] ?? []);
+      const matchingOwnedIndexes = matchingCollectionIndexes.filter(index => ownedIndexes.has(index));
+      if (matchingCollectionIndexes.length !== pair.count || matchingOwnedIndexes.length !== ownedCount) {
+        throw new TypeError(`Pair indexes do not reconcile for ${key}`);
+      }
+      const left = analytics.traitFrequencies[leftKey];
+      const right = analytics.traitFrequencies[rightKey];
+      if (!left || !right || left.normalizedCategory === right.normalizedCategory
+        || left.placeholderLike || right.placeholderLike
+        || left.featureExclusions.includes('unexpected-pairings') || right.featureExclusions.includes('unexpected-pairings')) return [];
+      const surpriseScore = Number((lift * Math.log2(analytics.assetCount / pair.count)).toFixed(4));
+      return [{
+        key,
+        left: { key: leftKey, category: left.category, value: left.value },
+        right: { key: rightKey, category: right.category, value: right.value },
+        ownedCount,
+        collectionCount: pair.count,
+        ownerPercentage: Number((ownerShare * 100).toFixed(4)),
+        collectionPercentage,
+        lift,
+        surpriseScore,
+        representativeIndex: matchingOwnedIndexes[0],
+        matchingOwnedIndexes,
+        matchingCollectionIndexes,
+      }];
+    })
+    .sort((left, right) => right.surpriseScore - left.surpriseScore
+      || right.ownedCount - left.ownedCount
+      || left.collectionCount - right.collectionCount
+      || left.left.key.localeCompare(right.left.key)
+      || left.right.key.localeCompare(right.right.key))
+    .slice(0, UNEXPECTED_PAIRINGS_RULE.maximumHighlights);
+
   const pyramidTiers = analytics.indexes.pyramid.rule.tiers.map(tier => {
     const normalizedClass = normalizeComparisonKey(tier.classValue);
     return { ...tier, owned: intersectionCount(analytics.indexes.pyramid.classes[normalizedClass] ?? [], ownedIndexes) };
@@ -239,6 +298,13 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
       minimumWalletSize: COLLECTION_CHARACTER_RULE.minimumWalletSize,
       minimumOwnedCount: characterMinimum,
       highlights: characterHighlights,
+    },
+    pairings: {
+      ruleVersion: UNEXPECTED_PAIRINGS_RULE.version,
+      minimumCollectionCount: UNEXPECTED_PAIRINGS_RULE.minimumCollectionCount,
+      maximumCollectionPercentage: UNEXPECTED_PAIRINGS_RULE.maximumCollectionPercentage,
+      minimumLift: UNEXPECTED_PAIRINGS_RULE.minimumLift,
+      highlights: pairingHighlights,
     },
     traitCounts,
     pairCounts,

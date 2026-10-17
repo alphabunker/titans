@@ -52,7 +52,7 @@ changes.
 
 ## Rule versions
 
-`src/fortress-rules.js` owns the initial Pyramid, rarity, and collection-character boundaries. Mini-collection rules are supplied as approved configuration and embedded with their own version. A change to precomputed analytics semantics increments `FORTRESS_RULES_VERSION` and regenerates the analytics artifact; browser-only feature rules carry their own version. Rules version 1.1.0 adds explicit placeholder flags and the owner-only lookup indexes; it does not change the approved Pyramid or rarity thresholds.
+`src/fortress-rules.js` owns the initial Pyramid, rarity, collection-character, and Unexpected Pairings boundaries. Mini-collection rules are supplied as approved configuration and embedded with their own version. A change to precomputed analytics semantics increments `FORTRESS_RULES_VERSION` and regenerates the analytics artifact; browser-only feature rules carry their own version. Rules version 1.1.0 adds explicit placeholder flags and the owner-only lookup indexes; it does not change the approved Pyramid or rarity thresholds.
 
 ## Owner summary and collection character
 
@@ -80,3 +80,37 @@ Collection-character rule `1.0.0` is defined in `src/fortress-rules.js`:
 
 Changing highlights or opening matching Titans reads only in-memory indexes and
 does not call Koios or another blockchain provider.
+
+## Unexpected Pairings
+
+Unexpected Pairings rule `1.0.0` is defined in `src/fortress-rules.js`. The
+owner calculation starts only with cross-category pairs already present in an
+owned Titan and applies these eligibility rules:
+
+- the pair must occur on at least two canonical Titans, which removes unique
+  combinations that have no collection counterpart to explore;
+- its complete-collection support must be no more than 2% of the active
+  snapshot;
+- placeholder-like values, feature-excluded traits, same-category pairs, and
+  duplicate normalized traits remain excluded;
+- owner lift must be at least `1.25×`, where lift is the share of owned Titans
+  containing the pair divided by the pair's share of the complete collection.
+
+Eligible pairs receive a deterministic surprise score:
+
+`owner lift × log2(collection asset count ÷ pair collection count)`
+
+Results sort by score descending, owned support descending, collection support
+ascending, left normalized trait key ascending, then right normalized trait
+key ascending. The first three are shown. The first matching owned canonical
+index supplies the card image. For each result, the browser intersects the two
+precomputed trait indexes and verifies that the derived complete and owned
+subsets exactly match the stored pair and owner counts before returning the
+result.
+
+The **Meet the collection** and **Your Titans** views reuse those in-memory
+indexes. Switching views, opening NFT details, and dismissing the dialog do not
+call Koios or another blockchain provider. The dialog uses native modal focus
+containment and Escape behavior; its tabs expose tab/tablist/panel semantics,
+arrow/Home/End keyboard navigation, counts in their accessible names, and
+return focus to the invoking card when dismissed.
