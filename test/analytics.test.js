@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assertAnalyticsReconciles, buildCollectionAnalytics, buildOwnerAnalytics, decodeTraitKey, rarityBandFor } from '../src/analytics.js';
 import { CIP68_USER_LABEL_PREFIX, COLLECTION_POLICY_ID, CONTRACT_VERSION } from '../src/contracts.js';
+import { MINI_COLLECTIONS, MINI_COLLECTION_RULES_VERSION } from '../src/fortress-rules.js';
 
 const makeAsset = (number, traits) => {
   const payload = Buffer.from(`HouseOfTitans${String(number).padStart(4, '0')}`).toString('hex');
@@ -79,10 +80,18 @@ test('rare details reconcile frequencies, owner states, representatives, and pla
 test('versioned mini-collection membership is deterministic from canonical traits', () => {
   const analytics = buildCollectionAnalytics(snapshot, {
     generatedAt: '2026-10-17T18:01:00.000Z',
-    miniCollections: [{ id: 'royal-humans', name: 'Royal Humans', ruleVersion: 'draft-1', all: [{ category: 'Class', value: 'Royal' }, { category: 'Skin', value: 'Human' }] }],
+    miniCollections: [{ id: 'royal-humans', name: 'Royal Humans', ruleVersion: 'draft-1', all: [{ category: 'Class', anyOf: ['Royal', 'Titan'] }, { category: 'Skin', value: 'Human' }] }],
   });
   assert.deepEqual(analytics.indexes.miniCollections['royal-humans'].matches, [0]);
   assert.equal(analytics.indexes.miniCollections['royal-humans'].ruleVersion, 'draft-1');
+});
+
+test('initial release defines exactly nine unique versioned mini-collections', () => {
+  assert.equal(MINI_COLLECTIONS.length, 9);
+  assert.equal(new Set(MINI_COLLECTIONS.map(collection => collection.id)).size, 9);
+  assert.ok(MINI_COLLECTIONS.every(collection => collection.ruleVersion === MINI_COLLECTION_RULES_VERSION));
+  assert.ok(MINI_COLLECTIONS.every(collection => collection.name && collection.description && collection.ruleText));
+  assert.ok(MINI_COLLECTIONS.every(collection => collection.all.length >= 2));
 });
 
 test('analytics are byte-deterministic for the same snapshot and rule versions', () => {
@@ -119,7 +128,11 @@ test('owner analytics need only owned asset IDs and the published indexes', () =
   assert.equal(owner.traitCounts[humanKey], 1);
   assert.equal(owner.pyramid.titanCount, 1);
   assert.equal(owner.pyramid.completed, 0);
-  assert.deepEqual(owner.miniCollections['royal-humans'], { owned: 1, total: 1 });
+  assert.equal(owner.miniCollections['royal-humans'].owned, 1);
+  assert.equal(owner.miniCollections['royal-humans'].total, 1);
+  assert.equal(owner.miniCollections['royal-humans'].ownerPercentage, 100);
+  assert.deepEqual(owner.miniCollections['royal-humans'].matchingOwnedIndexes, [0]);
+  assert.deepEqual(owner.miniCollections['royal-humans'].matchingCollectionIndexes, [0]);
   assert.ok(Object.keys(owner.pairCounts).every(key => !key.endsWith('\u001fnone')));
 });
 

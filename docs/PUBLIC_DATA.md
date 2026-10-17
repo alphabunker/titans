@@ -46,7 +46,8 @@ snapshot.
 - Search, filter, sort, saved-item, table, grid, and detail interactions operate
   only on the loaded in-memory snapshot and make no blockchain-provider calls.
 - Owner summary, collection-character ranking, Unexpected Pairings ranking,
-  five-rank Pyramid progress, Rare Details rarity bands, and their
+  five-rank Pyramid progress, Rare Details rarity bands, nine mini-collection
+  memberships, and their
   complete/owned matching-Titan views operate on the loaded analytics and
   owned asset IDs without provider calls.
 - At most 48 result rows/cards are mounted per page on desktop and mobile.

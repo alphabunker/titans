@@ -19,13 +19,21 @@ latest.json
 pointers/history/<activation-time>-<snapshot-id>.json
 snapshots/<snapshot-id>/collection.json
 snapshots/<snapshot-id>/analytics.json
+snapshots/<snapshot-id>/analytics/<rules-version>.json
 snapshots/<snapshot-id>/validation-report.json
 snapshots/<snapshot-id>/ingestion-run.json
 snapshots/<snapshot-id>/manifest.json
+snapshots/<snapshot-id>/manifests/<rules-version>.json
 exports/d1/<export-time>.sql          # operational backup story
 ```
 
 Snapshot artifacts are immutable. Each manifest records artifact byte size and SHA-256 digest. `latest.json` is written last and only for a complete 6,500-asset snapshot with a valid report and successful run. A failed object write leaves the existing active pointer untouched.
+
+An analytics-only rules release keeps the canonical snapshot immutable and
+writes a rules-versioned analytics object plus a rules-versioned manifest. It
+archives the current pointer and updates `latest.json` last. Prepare this
+bounded overlay with `npm run prepare:analytics-release`; upload the reported
+analytics, manifest, and history objects first, then the generated pointer.
 
 ## Activation sequence
 

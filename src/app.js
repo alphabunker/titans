@@ -21,6 +21,8 @@ let pyramidReturnFocus = null;
 let pyramidDetailTransition = false;
 let rareDetailReturnFocus = null;
 let rareDetailTransition = false;
+let miniCollectionReturnFocus = null;
+let miniCollectionTransition = false;
 const state = {
   query: '', traits: {}, favorites: [], favoritesOnly: false, sort: 'asc', view: 'grid', page: 0,
 };
@@ -389,6 +391,108 @@ function showRareDetail(detail, trigger) {
   (initialView === 'owned' ? ownedTab : collectionTab).focus();
 }
 
+function miniCollectionResultCard(item, owned) {
+  const card = el('article', undefined, `mini-collection-result-card${owned ? ' is-owned' : ''}`);
+  const button = el('button', undefined, 'card-open');
+  button.type = 'button';
+  button.setAttribute('aria-label', `View ${item.name}${owned ? ', in your collection' : ''}`);
+  button.append(art(item));
+  button.onclick = () => {
+    miniCollectionTransition = true;
+    $('#mini-collection-dialog').close();
+    showDetail(item);
+  };
+  const copy = el('div', undefined, 'mini-collection-result-copy');
+  copy.append(el('h3', item.name), el('p', item.number ? `Titan #${item.number}` : 'Verified Titan', 'muted'));
+  if (owned) copy.append(el('span', 'YOUR TITAN', 'owned-badge'));
+  card.append(button, copy);
+  return card;
+}
+
+function showMiniCollection(collection, trigger) {
+  miniCollectionReturnFocus = trigger;
+  const content = $('#mini-collection-dialog-content');
+  const title = el('h2', collection.name);
+  title.id = 'mini-collection-dialog-title';
+  const intro = el('p', `${collection.description} ${collection.total.toLocaleString()} Titans match rule ${collection.ruleVersion}.`, 'mini-collection-dialog-intro');
+  const rule = el('p', collection.ruleText, 'mini-collection-dialog-rule');
+  const tablist = el('div', undefined, 'mini-collection-tabs');
+  tablist.setAttribute('role', 'tablist');
+  tablist.setAttribute('aria-label', `${collection.name} results`);
+  const collectionTab = el('button', `Meet the collection (${collection.total.toLocaleString()})`);
+  const ownedTab = el('button', `Your Titans (${collection.owned.toLocaleString()})`);
+  const panel = el('div', undefined, 'mini-collection-results');
+  panel.id = 'mini-collection-results';
+  panel.setAttribute('role', 'tabpanel');
+  panel.tabIndex = -1;
+  const tabs = [collectionTab, ownedTab];
+  collectionTab.id = 'mini-collection-all-tab';
+  ownedTab.id = 'mini-collection-owned-tab';
+  tabs.forEach(tab => {
+    tab.type = 'button';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-controls', panel.id);
+  });
+  const ownedIndexes = new Set(collection.matchingOwnedIndexes);
+  let activeView = 'collection';
+  let visibleCount = PAGE_SIZE;
+  const renderGrid = () => {
+    const indexes = activeView === 'collection' ? collection.matchingCollectionIndexes : collection.matchingOwnedIndexes;
+    const shown = indexes.slice(0, visibleCount);
+    const grid = el('div', undefined, 'mini-collection-dialog-grid');
+    for (const index of shown) {
+      const item = itemAtAnalyticsIndex(index);
+      if (item) grid.append(miniCollectionResultCard(item, ownedIndexes.has(index)));
+    }
+    const summary = el('p', `Showing ${shown.length.toLocaleString()} of ${indexes.length.toLocaleString()} matching ${indexes.length === 1 ? 'Titan' : 'Titans'}.`, 'mini-collection-result-count');
+    summary.setAttribute('role', 'status');
+    const children = [summary, grid];
+    if (shown.length < indexes.length) {
+      const more = el('button', `Show ${Math.min(PAGE_SIZE, indexes.length - shown.length).toLocaleString()} more`, 'mini-collection-load-more');
+      more.type = 'button';
+      more.onclick = () => {
+        visibleCount += PAGE_SIZE;
+        renderGrid();
+        (panel.querySelector('.mini-collection-load-more') ?? panel).focus();
+      };
+      children.push(more);
+    }
+    panel.replaceChildren(...children);
+  };
+  const renderView = view => {
+    activeView = view;
+    visibleCount = PAGE_SIZE;
+    const activeTab = view === 'collection' ? collectionTab : ownedTab;
+    tabs.forEach(tab => {
+      const selected = tab === activeTab;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    panel.setAttribute('aria-labelledby', activeTab.id);
+    renderGrid();
+  };
+  collectionTab.onclick = () => renderView('collection');
+  ownedTab.onclick = () => renderView('owned');
+  tablist.onkeydown = event => {
+    const current = tabs.indexOf(document.activeElement);
+    if (current < 0) return;
+    let next = current;
+    if (event.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    tabs[next].click();
+    tabs[next].focus();
+  };
+  tablist.append(...tabs);
+  content.replaceChildren(el('div', 'A COLLECTION WITHIN THE COLLECTION', 'eyebrow'), title, intro, rule, tablist, panel);
+  renderView(collection.owned ? 'owned' : 'collection');
+  $('#mini-collection-dialog').showModal();
+  (collection.owned ? ownedTab : collectionTab).focus();
+}
+
 function saveFavorites() {
   try { localStorage.setItem('titans-saved-v1', JSON.stringify(state.favorites)); } catch { /* Continue in memory. */ }
 }
@@ -712,10 +816,54 @@ function renderPortfolio(session, portfolio) {
   renderUnexpectedPairings(owner, portfolio);
   renderTitansPyramid(owner, portfolio);
   renderRareDetails(owner, portfolio);
+  renderMiniCollections(owner, portfolio);
   $('#portfolio-result').hidden = false;
   if (portfolio.status === 'partial') showFortressStatus('PARTIAL RESULT', 'Some holdings were resolved, but the provider could not complete every address batch.', 'warning');
   else hideFortressStatus();
   $('#portfolio-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderMiniCollections(owner, portfolio) {
+  const section = $('#mini-collections');
+  const root = $('#mini-collections-content');
+  root.replaceChildren();
+  section.hidden = false;
+  const collections = owner ? Object.values(owner.miniCollections) : [];
+  if (!owner || collections.length !== 9) {
+    const empty = el('div', undefined, 'mini-collections-empty');
+    empty.append(el('strong', 'The nine paths are temporarily unavailable'), el('span', 'The verified holdings are shown above, but the matching curated indexes could not be loaded.'));
+    root.append(empty);
+    $('#mini-collections-method').textContent = '';
+    return;
+  }
+  const grid = el('div', undefined, 'mini-collections-grid');
+  for (const collection of collections) {
+    const card = el('article', undefined, 'mini-collection-card');
+    const composition = el('div', undefined, 'mini-collection-composition');
+    collection.representativeIndexes.forEach((index, position) => {
+      const item = itemAtAnalyticsIndex(index);
+      if (!item) return;
+      const frame = el('div', undefined, `mini-collection-frame frame-${position + 1}`);
+      frame.append(art(item));
+      composition.append(frame);
+    });
+    const body = el('div', undefined, 'mini-collection-card-body');
+    body.append(el('h3', collection.name), el('p', collection.description, 'mini-collection-description'));
+    const rule = el('div', undefined, 'mini-collection-rule');
+    rule.append(el('strong', 'THE SELECTION'), el('span', collection.ruleText));
+    const count = el('p', undefined, 'mini-collection-count');
+    count.append(el('strong', collection.owned.toLocaleString()), document.createTextNode(` of ${collection.total.toLocaleString()} Titans`));
+    const share = el('p', `${collection.ownerPercentage.toFixed(2)}% of this mini-collection is yours`, 'mini-collection-share');
+    const open = el('button', 'Explore this collection', 'mini-collection-open');
+    open.type = 'button';
+    open.onclick = () => showMiniCollection(collection, open);
+    body.append(rule, count, share, open);
+    card.append(composition, body);
+    grid.append(card);
+  }
+  root.append(grid);
+  const versions = [...new Set(collections.map(collection => collection.ruleVersion))].join(', ');
+  $('#mini-collections-method').textContent = `Exactly nine editorial sets derived from canonical on-chain traits. Membership is deterministic under rule ${versions}; no hand-picked exceptions${portfolio.status === 'partial' ? ' · owner counts based on partial holdings' : ''}.`;
 }
 
 function renderRareDetails(owner, portfolio) {
@@ -1009,6 +1157,7 @@ function clearFortressSession() {
   $('#unexpected-pairings').hidden = true;
   $('#titans-pyramid').hidden = true;
   $('#rare-details').hidden = true;
+  $('#mini-collections').hidden = true;
   $('#address-form').reset();
   hideFortressStatus();
   $('#fortress-entry-title').focus({ preventScroll: true });
@@ -1071,6 +1220,17 @@ $('#rare-detail-dialog').addEventListener('close', () => {
   }
   rareDetailReturnFocus?.focus();
   rareDetailReturnFocus = null;
+});
+$('#close-mini-collection').onclick = () => $('#mini-collection-dialog').close();
+$('#mini-collection-dialog').onclick = event => { if (event.target === $('#mini-collection-dialog')) $('#mini-collection-dialog').close(); };
+$('#mini-collection-dialog').addEventListener('close', () => {
+  if (miniCollectionTransition) {
+    miniCollectionTransition = false;
+    miniCollectionReturnFocus = null;
+    return;
+  }
+  miniCollectionReturnFocus?.focus();
+  miniCollectionReturnFocus = null;
 });
 
 $('#address-form').onsubmit = async event => {

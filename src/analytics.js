@@ -33,7 +33,8 @@ function validateMiniCollection(definition) {
   }
   if (!Array.isArray(definition.all) || !definition.all.length) throw new TypeError(`Mini-collection ${definition.id} requires at least one condition`);
   definition.all.forEach(condition => {
-    if (!condition || typeof condition.category !== 'string' || typeof condition.value !== 'string') {
+    const values = condition?.anyOf ?? (typeof condition?.value === 'string' ? [condition.value] : null);
+    if (!condition || typeof condition.category !== 'string' || !Array.isArray(values) || !values.length || values.some(value => typeof value !== 'string' || !value)) {
       throw new TypeError(`Mini-collection ${definition.id} has an invalid condition`);
     }
   });
@@ -41,7 +42,10 @@ function validateMiniCollection(definition) {
 
 function miniCollectionMatches(asset, definition) {
   const keys = new Set(asset.traits.map(traitKey));
-  return definition.all.every(condition => keys.has(`${normalizeComparisonKey(condition.category)}${KEY_SEPARATOR}${normalizeComparisonKey(condition.value)}`));
+  return definition.all.every(condition => {
+    const values = condition.anyOf ?? [condition.value];
+    return values.some(value => keys.has(`${normalizeComparisonKey(condition.category)}${KEY_SEPARATOR}${normalizeComparisonKey(value)}`));
+  });
 }
 
 export function buildCollectionAnalytics(snapshot, {
@@ -108,6 +112,7 @@ export function buildCollectionAnalytics(snapshot, {
     return [definition.id, {
       name: definition.name,
       description: definition.description ?? '',
+      ruleText: definition.ruleText ?? definition.all.map(condition => `${condition.category}: ${(condition.anyOf ?? [condition.value]).join(' or ')}`).join(' + '),
       ruleVersion: definition.ruleVersion ?? FORTRESS_RULES_VERSION,
       all: definition.all,
       matches,
@@ -379,10 +384,23 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
       titanCollectionIndexes,
       tiers: pyramidTiersWithShortages,
     },
-    miniCollections: Object.fromEntries(Object.entries(analytics.indexes.miniCollections).map(([id, collection]) => [id, {
-      owned: intersectionCount(collection.matches, ownedIndexes),
-      total: collection.matches.length,
-    }])),
+    miniCollections: Object.fromEntries(Object.entries(analytics.indexes.miniCollections).map(([id, collection]) => {
+      const matchingOwnedIndexes = collection.matches.filter(index => ownedIndexes.has(index));
+      const representatives = [...matchingOwnedIndexes, ...collection.matches.filter(index => !ownedIndexes.has(index))].slice(0, 3);
+      return [id, {
+        id,
+        name: collection.name,
+        description: collection.description,
+        ruleText: collection.ruleText,
+        ruleVersion: collection.ruleVersion,
+        owned: matchingOwnedIndexes.length,
+        total: collection.matches.length,
+        ownerPercentage: percentage(matchingOwnedIndexes.length, collection.matches.length),
+        representativeIndexes: representatives,
+        matchingOwnedIndexes,
+        matchingCollectionIndexes: collection.matches,
+      }];
+    })),
   };
 }
 
@@ -396,6 +414,7 @@ export function assertAnalyticsReconciles(snapshot, analytics) {
     id,
     name: collection.name,
     description: collection.description,
+    ruleText: collection.ruleText,
     ruleVersion: collection.ruleVersion,
     all: collection.all,
   }));

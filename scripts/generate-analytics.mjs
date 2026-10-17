@@ -2,6 +2,7 @@ import { gzipSync } from 'node:zlib';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { assertAnalyticsReconciles, buildCollectionAnalytics } from '../src/analytics.js';
+import { MINI_COLLECTIONS } from '../src/fortress-rules.js';
 
 function argument(name, fallback) {
   const index = process.argv.indexOf(name);
@@ -11,7 +12,7 @@ function argument(name, fallback) {
 const input = resolve(argument('--input', '.data/import/collection.candidate.json'));
 const output = resolve(argument('--output', '.data/import/analytics.json'));
 const snapshot = JSON.parse(await readFile(input, 'utf8'));
-const analytics = buildCollectionAnalytics(snapshot);
+const analytics = buildCollectionAnalytics(snapshot, { miniCollections: MINI_COLLECTIONS });
 assertAnalyticsReconciles(snapshot, analytics);
 const body = `${JSON.stringify(analytics)}\n`;
 await mkdir(dirname(output), { recursive: true });

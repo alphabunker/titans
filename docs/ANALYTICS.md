@@ -52,7 +52,7 @@ changes.
 
 ## Rule versions
 
-`src/fortress-rules.js` owns the initial Pyramid, rarity, collection-character, and Unexpected Pairings boundaries. Mini-collection rules are supplied as approved configuration and embedded with their own version. A change to precomputed analytics semantics increments `FORTRESS_RULES_VERSION` and regenerates the analytics artifact; browser-only feature rules carry their own version. Rules version 1.1.0 adds explicit placeholder flags and the owner-only lookup indexes; it does not change the approved Pyramid or rarity thresholds.
+`src/fortress-rules.js` owns the initial Pyramid, rarity, collection-character, Unexpected Pairings, and mini-collection boundaries. Mini-collection rules are supplied as approved configuration and embedded with their own version. A change to precomputed analytics semantics increments `FORTRESS_RULES_VERSION` and regenerates the analytics artifact; browser-only feature rules carry their own version. Rules version 1.1.0 added explicit placeholder flags and the owner-only lookup indexes. Rules version 1.2.0 adds deterministic any-of clauses and the nine approved mini-collection definitions; it does not change the approved Pyramid or rarity thresholds.
 
 ## Owner summary and collection character
 
@@ -171,3 +171,20 @@ the loaded in-memory snapshot without a blockchain-provider call.
 
 Rarity labels are descriptive metadata summaries only. They are not prices,
 investment guidance, marketplace rankings, or an official value score.
+
+## Mini-collections
+
+Mini-collection rule `1.0.0` evaluates an AND across each definition's clauses
+and an OR across the canonical values inside a clause. Every definition stores
+its name, description, transparent rule text, rule version, and matching
+canonical asset positions in the analytics artifact. There are no hand-picked
+exceptions.
+
+Owner analytics intersects those published positions with the verified owned
+asset positions to produce the owned count, total count, owner share, owned
+subset, and an image composition that prefers owned matches. The complete and
+owned views use the same accessible, bounded in-memory exploration pattern as
+the other Fortress sections and make no additional blockchain-provider call.
+
+The nine approved definitions, full-snapshot counts, collision review, and
+approval record are documented in `docs/MINI_COLLECTIONS.md`.
