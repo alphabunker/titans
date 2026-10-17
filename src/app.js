@@ -812,7 +812,7 @@ function renderPortfolio(session, portfolio) {
         ? 'The verified asset IDs are ready for the owner insights that follow in The Fortress.'
         : 'This address has no current holdings under the verified House of Titans policy.'),
   );
-  renderCollectionCharacter(owner, portfolio);
+  renderCollectionCharacter(owner);
   renderUnexpectedPairings(owner, portfolio);
   renderTitansPyramid(owner, portfolio);
   renderRareDetails(owner, portfolio);
@@ -1068,7 +1068,7 @@ function renderUnexpectedPairings(owner, portfolio) {
   $('#pairings-method').textContent = `Rules ${owner.pairings.ruleVersion} rank pairings by owner lift and collection scarcity. Eligible pairs occur on 2 or more Titans, cover no more than ${owner.pairings.maximumCollectionPercentage}% of the collection, and have at least ${owner.pairings.minimumLift.toFixed(2)}× lift${portfolio.status === 'partial' ? ' · based on partial holdings' : ''}.`;
 }
 
-function renderCollectionCharacter(owner, portfolio) {
+function renderCollectionCharacter(owner) {
   const section = $('#collection-character');
   const root = $('#character-content');
   root.replaceChildren();
@@ -1077,7 +1077,6 @@ function renderCollectionCharacter(owner, portfolio) {
     const state = el('div', undefined, 'character-empty');
     state.append(el('strong', 'Collection character is temporarily unavailable'), el('span', 'The verified holdings are shown above, but the matching collection analytics could not be loaded.'));
     root.append(state);
-    $('#character-method').textContent = '';
     return;
   }
   if (owner.summary.titans === 0) {
@@ -1119,7 +1118,6 @@ function renderCollectionCharacter(owner, portfolio) {
     }
     root.append(grid);
   }
-  $('#character-method').textContent = `Lift compares this portfolio’s trait share with the full collection. Rules ${owner.character.ruleVersion} · minimum ${owner.character.minimumOwnedCount} matching Titans · minimum 1.10× lift${portfolio.status === 'partial' ? ' · based on partial holdings' : ''}.`;
 }
 
 async function resolveFortressSession(session) {
