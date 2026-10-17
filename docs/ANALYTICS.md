@@ -114,3 +114,29 @@ call Koios or another blockchain provider. The dialog uses native modal focus
 containment and Escape behavior; its tabs expose tab/tablist/panel semantics,
 arrow/Home/End keyboard navigation, counts in their accessible names, and
 return focus to the invoking card when dismissed.
+
+## Five-rank Titans Pyramid
+
+Pyramid rule `1.0.0` is versioned in `src/fortress-rules.js`, not in UI
+markup. One complete pyramid requires 15 ranked NFTs: one Royal, two Mystics,
+three Military, four Townsfolk, and five Peasants. The `Titan` class has its
+own index and count and is never included in completion math. No enhanced,
+crowned, or special variant exists in this rule.
+
+For each required class, owner analytics intersects the class index with the
+owned canonical indexes. Completed pyramids are the limiting whole-number
+quotient:
+
+`min(floor(Royal ÷ 1), floor(Mystic ÷ 2), floor(Military ÷ 3), floor(Townsfolk ÷ 4), floor(Peasant ÷ 5))`
+
+The next target is `completed + 1`. Each tier's exact shortage is
+`max(0, required per pyramid × next target − owned)`. The overall remaining
+count is the sum of those five shortages, so surplus NFTs from one rank cannot
+hide a shortage in another.
+
+Selecting a rank opens the exact matching owned indexes and the complete
+canonical class index. Candidate results mount 48 at a time and retain lazy
+image loading. Tabs provide tab/tablist/panel semantics plus Arrow/Home/End
+navigation; native modal Escape/focus containment and return-focus behavior
+match the pairing explorer. Rank browsing, pagination, and NFT detail opening
+use loaded in-memory data and make no blockchain-provider calls.

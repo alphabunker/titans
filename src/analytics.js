@@ -271,12 +271,26 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
 
   const pyramidTiers = analytics.indexes.pyramid.rule.tiers.map(tier => {
     const normalizedClass = normalizeComparisonKey(tier.classValue);
-    return { ...tier, owned: intersectionCount(analytics.indexes.pyramid.classes[normalizedClass] ?? [], ownedIndexes) };
+    const matchingCollectionIndexes = analytics.indexes.pyramid.classes[normalizedClass] ?? [];
+    const matchingOwnedIndexes = matchingCollectionIndexes.filter(index => ownedIndexes.has(index));
+    return {
+      ...tier,
+      owned: matchingOwnedIndexes.length,
+      matchingOwnedIndexes,
+      matchingCollectionIndexes,
+    };
   });
   const completed = pyramidTiers.length
     ? Math.min(...pyramidTiers.map(tier => Math.floor(tier.owned / tier.required)))
     : 0;
   const nextTarget = completed + 1;
+  const pyramidTiersWithShortages = pyramidTiers.map(tier => ({
+    ...tier,
+    requiredForNext: tier.required * nextTarget,
+    missingForNext: Math.max(0, tier.required * nextTarget - tier.owned),
+  }));
+  const titanCollectionIndexes = analytics.indexes.pyramid.titan;
+  const titanOwnedIndexes = titanCollectionIndexes.filter(index => ownedIndexes.has(index));
 
   return {
     snapshotId: analytics.snapshotId,
@@ -313,9 +327,15 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
       missing: keys.filter(key => traitCounts[key] === 0),
     }])),
     pyramid: {
+      ruleVersion: analytics.indexes.pyramid.rule.version,
+      requiredPerPyramid: analytics.indexes.pyramid.rule.tiers.reduce((total, tier) => total + tier.required, 0),
       completed,
-      titanCount: intersectionCount(analytics.indexes.pyramid.titan, ownedIndexes),
-      tiers: pyramidTiers.map(tier => ({ ...tier, missingForNext: Math.max(0, tier.required * nextTarget - tier.owned) })),
+      nextTarget,
+      totalMissingForNext: pyramidTiersWithShortages.reduce((total, tier) => total + tier.missingForNext, 0),
+      titanCount: titanOwnedIndexes.length,
+      titanOwnedIndexes,
+      titanCollectionIndexes,
+      tiers: pyramidTiersWithShortages,
     },
     miniCollections: Object.fromEntries(Object.entries(analytics.indexes.miniCollections).map(([id, collection]) => [id, {
       owned: intersectionCount(collection.matches, ownedIndexes),

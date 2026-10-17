@@ -17,6 +17,8 @@ let fortressSession = null;
 let discoveredWallets = [];
 let pairingReturnFocus = null;
 let pairingDetailTransition = false;
+let pyramidReturnFocus = null;
+let pyramidDetailTransition = false;
 const state = {
   query: '', traits: {}, favorites: [], favoritesOnly: false, sort: 'asc', view: 'grid', page: 0,
 };
@@ -177,6 +179,110 @@ function showPairingDetail(pairing, trigger) {
   renderView('collection');
   $('#pairing-detail').showModal();
   collectionTab.focus();
+}
+
+function pyramidResultCard(item, owned) {
+  const card = el('article', undefined, `pyramid-dialog-card${owned ? ' is-owned' : ''}`);
+  const button = el('button', undefined, 'card-open');
+  button.type = 'button';
+  button.setAttribute('aria-label', `View ${item.name}${owned ? ', in your collection' : ''}`);
+  button.append(art(item));
+  button.onclick = () => {
+    pyramidDetailTransition = true;
+    $('#pyramid-detail').close();
+    showDetail(item);
+  };
+  const copy = el('div', undefined, 'pyramid-dialog-card-copy');
+  copy.append(el('h3', item.name), el('p', item.number ? `Titan #${item.number}` : 'Verified Titan', 'muted'));
+  if (owned) copy.append(el('span', 'YOUR TITAN', 'owned-badge'));
+  card.append(button, copy);
+  return card;
+}
+
+function showPyramidDetail(tier, trigger, nextTarget) {
+  pyramidReturnFocus = trigger;
+  const content = $('#pyramid-detail-content');
+  const title = el('h2', tier.isTitan ? 'Titans outside the ranks' : `${tier.classValue} rank`);
+  title.id = 'pyramid-detail-title';
+  const intro = el('p', tier.isTitan
+    ? `${tier.owned.toLocaleString()} owned. The Titan class is tracked separately and never changes pyramid completion.`
+    : `${tier.owned.toLocaleString()} owned · ${tier.required.toLocaleString()} required per pyramid · ${tier.missingForNext.toLocaleString()} still needed for Pyramid ${nextTarget}.`, 'pyramid-dialog-intro');
+  const tablist = el('div', undefined, 'pyramid-tabs');
+  tablist.setAttribute('role', 'tablist');
+  tablist.setAttribute('aria-label', `${tier.classValue} rank results`);
+  const ownedTab = el('button', `Your Titans (${tier.matchingOwnedIndexes.length.toLocaleString()})`);
+  const collectionTab = el('button', `Collection candidates (${tier.matchingCollectionIndexes.length.toLocaleString()})`);
+  const panel = el('div', undefined, 'pyramid-results');
+  panel.id = 'pyramid-results';
+  panel.setAttribute('role', 'tabpanel');
+  panel.tabIndex = -1;
+  const tabs = [ownedTab, collectionTab];
+  ownedTab.id = 'pyramid-owned-tab';
+  collectionTab.id = 'pyramid-collection-tab';
+  tabs.forEach(tab => {
+    tab.type = 'button';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-controls', panel.id);
+  });
+  const ownedIndexes = new Set(tier.matchingOwnedIndexes);
+  let activeView = 'owned';
+  let visibleCount = PAGE_SIZE;
+  const renderGrid = () => {
+    const indexes = activeView === 'owned' ? tier.matchingOwnedIndexes : tier.matchingCollectionIndexes;
+    const shown = indexes.slice(0, visibleCount);
+    const grid = el('div', undefined, 'pyramid-dialog-grid');
+    for (const index of shown) {
+      const item = itemAtAnalyticsIndex(index);
+      if (item) grid.append(pyramidResultCard(item, ownedIndexes.has(index)));
+    }
+    const summary = el('p', `Showing ${shown.length.toLocaleString()} of ${indexes.length.toLocaleString()} ${tier.classValue} ${indexes.length === 1 ? 'Titan' : 'Titans'}.`, 'pyramid-result-count');
+    summary.setAttribute('role', 'status');
+    const children = [summary, grid];
+    if (shown.length < indexes.length) {
+      const more = el('button', `Show ${Math.min(PAGE_SIZE, indexes.length - shown.length).toLocaleString()} more`, 'pyramid-load-more');
+      more.type = 'button';
+      more.onclick = () => {
+        visibleCount += PAGE_SIZE;
+        renderGrid();
+        (panel.querySelector('.pyramid-load-more') ?? panel).focus();
+      };
+      children.push(more);
+    }
+    panel.replaceChildren(...children);
+  };
+  const renderView = view => {
+    activeView = view;
+    visibleCount = PAGE_SIZE;
+    const activeTab = view === 'owned' ? ownedTab : collectionTab;
+    tabs.forEach(tab => {
+      const selected = tab === activeTab;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    panel.setAttribute('aria-labelledby', activeTab.id);
+    renderGrid();
+  };
+  ownedTab.onclick = () => renderView('owned');
+  collectionTab.onclick = () => renderView('collection');
+  tablist.onkeydown = event => {
+    const current = tabs.indexOf(document.activeElement);
+    if (current < 0) return;
+    let next = current;
+    if (event.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    tabs[next].click();
+    tabs[next].focus();
+  };
+  tablist.append(...tabs);
+  content.replaceChildren(el('div', 'THE FIVE RANKS', 'eyebrow'), title, intro, tablist, panel);
+  const initialView = tier.isTitan || tier.missingForNext === 0 ? 'owned' : 'collection';
+  renderView(initialView);
+  $('#pyramid-detail').showModal();
+  (initialView === 'owned' ? ownedTab : collectionTab).focus();
 }
 
 function saveFavorites() {
@@ -500,10 +606,82 @@ function renderPortfolio(session, portfolio) {
   );
   renderCollectionCharacter(owner, portfolio);
   renderUnexpectedPairings(owner, portfolio);
+  renderTitansPyramid(owner, portfolio);
   $('#portfolio-result').hidden = false;
   if (portfolio.status === 'partial') showFortressStatus('PARTIAL RESULT', 'Some holdings were resolved, but the provider could not complete every address batch.', 'warning');
   else hideFortressStatus();
   $('#portfolio-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderTitansPyramid(owner, portfolio) {
+  const section = $('#titans-pyramid');
+  const root = $('#pyramid-content');
+  root.replaceChildren();
+  section.hidden = false;
+  if (!owner) {
+    const empty = el('div', undefined, 'pyramid-empty');
+    empty.append(el('strong', 'Pyramid progress is temporarily unavailable'), el('span', 'The verified holdings are shown above, but the matching collection analytics could not be loaded.'));
+    root.append(empty);
+    $('#pyramid-method').textContent = '';
+    return;
+  }
+  const { pyramid } = owner;
+  const layout = el('div', undefined, 'pyramid-layout');
+  const summary = el('div', undefined, 'pyramid-summary');
+  const completed = el('div', undefined, 'pyramid-completed');
+  completed.append(el('strong', pyramid.completed.toLocaleString()), el('span', `${pyramid.completed === 1 ? 'complete pyramid' : 'complete pyramids'}`));
+  const next = el('div', undefined, 'pyramid-next');
+  next.append(
+    el('span', `NEXT ATTAINABLE / PYRAMID ${pyramid.nextTarget}`, 'eyebrow'),
+    el('strong', `${pyramid.totalMissingForNext.toLocaleString()} ${pyramid.totalMissingForNext === 1 ? 'piece' : 'pieces'} remaining`),
+    el('p', pyramid.totalMissingForNext === 0 ? 'The next pyramid is complete.' : 'Every shortage below is calculated against the next whole pyramid.'),
+  );
+  const nextPyramidProgress = pyramid.requiredPerPyramid - pyramid.totalMissingForNext;
+  const progress = el('div', undefined, 'pyramid-progress');
+  const progressBar = el('span');
+  progressBar.style.width = `${Math.max(0, Math.min(100, (nextPyramidProgress / pyramid.requiredPerPyramid) * 100))}%`;
+  progress.setAttribute('role', 'progressbar');
+  progress.setAttribute('aria-label', `Progress toward Pyramid ${pyramid.nextTarget}`);
+  progress.setAttribute('aria-valuemin', '0');
+  progress.setAttribute('aria-valuemax', String(pyramid.requiredPerPyramid));
+  progress.setAttribute('aria-valuenow', String(nextPyramidProgress));
+  progress.append(progressBar);
+  summary.append(completed, next, progress);
+
+  const ranks = el('div', undefined, 'pyramid-ranks');
+  pyramid.tiers.forEach((tier, index) => {
+    const button = el('button', undefined, 'pyramid-tier');
+    button.type = 'button';
+    button.style.setProperty('--rank', String(index + 1));
+    button.setAttribute('aria-label', `${tier.classValue}: ${tier.owned} owned, ${tier.required} required per pyramid, ${tier.missingForNext} needed for Pyramid ${pyramid.nextTarget}`);
+    const mark = el('span', tier.classValue.slice(0, 1), 'pyramid-tier-mark');
+    mark.setAttribute('aria-hidden', 'true');
+    const name = el('span', undefined, 'pyramid-tier-name');
+    name.append(el('strong', tier.classValue), el('small', `${tier.required} per pyramid`));
+    const owned = el('span', undefined, 'pyramid-tier-owned');
+    owned.append(el('strong', tier.owned.toLocaleString()), el('small', 'owned'));
+    const shortage = el('span', tier.missingForNext ? `Need ${tier.missingForNext}` : 'Ready', `pyramid-tier-shortage${tier.missingForNext ? '' : ' is-ready'}`);
+    button.append(mark, name, owned, shortage);
+    button.onclick = () => showPyramidDetail(tier, button, pyramid.nextTarget);
+    ranks.append(button);
+  });
+  const titanBox = el('button', undefined, 'pyramid-titan-box');
+  titanBox.type = 'button';
+  titanBox.setAttribute('aria-label', `${pyramid.titanCount} Titan-class NFTs owned; excluded from pyramid completion`);
+  const titanTier = {
+    isTitan: true,
+    classValue: 'Titan',
+    owned: pyramid.titanCount,
+    matchingOwnedIndexes: pyramid.titanOwnedIndexes,
+    matchingCollectionIndexes: pyramid.titanCollectionIndexes,
+  };
+  titanBox.append(el('span', 'T', 'pyramid-titan-mark'), el('strong', pyramid.titanCount.toLocaleString()), el('span', 'Titan class owned'), el('small', 'Tracked separately · not part of the pyramid'));
+  titanBox.onclick = () => showPyramidDetail(titanTier, titanBox, pyramid.nextTarget);
+  const right = el('div', undefined, 'pyramid-visual');
+  right.append(ranks, titanBox);
+  layout.append(summary, right);
+  root.append(layout);
+  $('#pyramid-method').textContent = `Rule ${pyramid.ruleVersion}: 1 Royal, 2 Mystics, 3 Military, 4 Townsfolk, and 5 Peasants per pyramid. Completion is the limiting whole-number quotient across the five ranks${portfolio.status === 'partial' ? ' · based on partial holdings' : ''}.`;
 }
 
 function renderUnexpectedPairings(owner, portfolio) {
@@ -643,6 +821,7 @@ function clearFortressSession() {
   $('#portfolio-result').hidden = true;
   $('#collection-character').hidden = true;
   $('#unexpected-pairings').hidden = true;
+  $('#titans-pyramid').hidden = true;
   $('#address-form').reset();
   hideFortressStatus();
   $('#fortress-entry-title').focus({ preventScroll: true });
@@ -683,6 +862,17 @@ $('#pairing-detail').addEventListener('close', () => {
   }
   pairingReturnFocus?.focus();
   pairingReturnFocus = null;
+});
+$('#close-pyramid-detail').onclick = () => $('#pyramid-detail').close();
+$('#pyramid-detail').onclick = event => { if (event.target === $('#pyramid-detail')) $('#pyramid-detail').close(); };
+$('#pyramid-detail').addEventListener('close', () => {
+  if (pyramidDetailTransition) {
+    pyramidDetailTransition = false;
+    pyramidReturnFocus = null;
+    return;
+  }
+  pyramidReturnFocus?.focus();
+  pyramidReturnFocus = null;
 });
 
 $('#address-form').onsubmit = async event => {
