@@ -799,24 +799,12 @@ function renderPortfolio(session, portfolio) {
     const value = items.find(item => item.id === assetId)?.traits.Class;
     return value ? [value] : [];
   })).size.toLocaleString();
-  $('#portfolio-state').textContent = portfolio.status === 'partial' ? 'Partial result' : 'Complete result';
-  $('#portfolio-checked').textContent = formatDate(portfolio.retrievedAt);
   $('#clear-portfolio').textContent = 'Disconnect';
-  const message = $('#portfolio-message');
-  message.className = `portfolio-message ${portfolio.status === 'partial' ? 'is-partial' : canonicalOwned ? 'has-titans' : 'is-empty'}`;
-  message.replaceChildren(
-    el('strong', portfolio.status === 'partial' ? 'Partial holdings returned' : canonicalOwned ? `${canonicalOwned.toLocaleString()} verified ${canonicalOwned === 1 ? 'Titan' : 'Titans'} found` : 'No Titans found'),
-    el('span', portfolio.status === 'partial'
-      ? 'Some account addresses could not be checked. Refresh before relying on this count.'
-      : canonicalOwned
-        ? 'The verified asset IDs are ready for the owner insights that follow in The Fortress.'
-        : 'This address has no current holdings under the verified House of Titans policy.'),
-  );
   renderCollectionCharacter(owner);
   renderUnexpectedPairings(owner, portfolio);
   renderTitansPyramid(owner, portfolio);
   renderRareDetails(owner, portfolio);
-  renderMiniCollections(owner, portfolio);
+  renderMiniCollections(owner);
   $('#fortress-entry').hidden = true;
   $('#portfolio-result').hidden = false;
   if (portfolio.status === 'partial') showFortressStatus('PARTIAL RESULT', 'Some holdings were resolved, but the provider could not complete every address batch.', 'warning');
@@ -824,7 +812,7 @@ function renderPortfolio(session, portfolio) {
   $('#portfolio-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function renderMiniCollections(owner, portfolio) {
+function renderMiniCollections(owner) {
   const section = $('#mini-collections');
   const root = $('#mini-collections-content');
   root.replaceChildren();
@@ -834,7 +822,6 @@ function renderMiniCollections(owner, portfolio) {
     const empty = el('div', undefined, 'mini-collections-empty');
     empty.append(el('strong', 'The nine paths are temporarily unavailable'), el('span', 'The verified holdings are shown above, but the matching curated indexes could not be loaded.'));
     root.append(empty);
-    $('#mini-collections-method').textContent = '';
     return;
   }
   const grid = el('div', undefined, 'mini-collections-grid');
@@ -863,8 +850,6 @@ function renderMiniCollections(owner, portfolio) {
     grid.append(card);
   }
   root.append(grid);
-  const versions = [...new Set(collections.map(collection => collection.ruleVersion))].join(', ');
-  $('#mini-collections-method').textContent = `Exactly nine editorial sets derived from canonical on-chain traits. Membership is deterministic under rule ${versions}; no hand-picked exceptions${portfolio.status === 'partial' ? ' · owner counts based on partial holdings' : ''}.`;
 }
 
 function renderRareDetails(owner, portfolio) {
