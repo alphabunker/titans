@@ -274,7 +274,7 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
       || left.right.key.localeCompare(right.right.key))
     .slice(0, UNEXPECTED_PAIRINGS_RULE.maximumHighlights);
 
-  const pyramidTiers = analytics.indexes.pyramid.rule.tiers.map(tier => {
+  const pyramidTiers = PYRAMID_RULE.tiers.map(tier => {
     const normalizedClass = normalizeComparisonKey(tier.classValue);
     const matchingCollectionIndexes = analytics.indexes.pyramid.classes[normalizedClass] ?? [];
     const matchingOwnedIndexes = matchingCollectionIndexes.filter(index => ownedIndexes.has(index));
@@ -374,8 +374,8 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
       bands: rareDetailBands,
     },
     pyramid: {
-      ruleVersion: analytics.indexes.pyramid.rule.version,
-      requiredPerPyramid: analytics.indexes.pyramid.rule.tiers.reduce((total, tier) => total + tier.required, 0),
+      ruleVersion: PYRAMID_RULE.version,
+      requiredPerPyramid: PYRAMID_RULE.tiers.reduce((total, tier) => total + tier.required, 0),
       completed,
       nextTarget,
       totalMissingForNext: pyramidTiersWithShortages.reduce((total, tier) => total + tier.missingForNext, 0),

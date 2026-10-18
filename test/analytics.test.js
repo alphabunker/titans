@@ -202,35 +202,43 @@ test('pyramid reports exact zero, partial, complete, and multiple-complete progr
   const zero = buildOwnerAnalytics([], analytics).pyramid;
   assert.equal(zero.completed, 0);
   assert.equal(zero.nextTarget, 1);
-  assert.equal(zero.totalMissingForNext, 15);
-  assert.deepEqual(zero.tiers.map(tier => tier.missingForNext), [1, 2, 3, 4, 5]);
+  assert.equal(zero.totalMissingForNext, 5);
+  assert.deepEqual(zero.tiers.map(tier => tier.missingForNext), [1, 1, 1, 1, 1]);
   assert.equal(zero.titanCount, 0);
 
   const partial = buildOwnerAnalytics(choose({ Royal: 1, Mystic: 1, Military: 3, Townsfolk: 2, Peasant: 4, Titan: 2 }), analytics).pyramid;
-  assert.equal(partial.completed, 0);
-  assert.equal(partial.totalMissingForNext, 4);
-  assert.deepEqual(partial.tiers.map(tier => tier.missingForNext), [0, 1, 0, 2, 1]);
+  assert.equal(partial.completed, 1);
+  assert.equal(partial.totalMissingForNext, 2);
+  assert.deepEqual(partial.tiers.map(tier => tier.missingForNext), [1, 1, 0, 0, 0]);
   assert.equal(partial.titanCount, 2);
   assert.equal(partial.tiers[0].matchingOwnedIndexes.length, 1);
   assert.equal(partial.tiers[0].matchingCollectionIndexes.length, 3);
   assert.equal(partial.titanOwnedIndexes.length, 2);
   assert.equal(partial.titanCollectionIndexes.length, 3);
 
-  const one = buildOwnerAnalytics(choose({ Royal: 1, Mystic: 2, Military: 3, Townsfolk: 4, Peasant: 5, Titan: 3 }), analytics).pyramid;
+  const one = buildOwnerAnalytics(choose({ Royal: 1, Mystic: 1, Military: 1, Townsfolk: 1, Peasant: 1, Titan: 3 }), analytics).pyramid;
   assert.equal(one.completed, 1);
   assert.equal(one.nextTarget, 2);
-  assert.equal(one.totalMissingForNext, 15);
+  assert.equal(one.totalMissingForNext, 5);
   assert.equal(one.titanCount, 3);
 
   const multiple = buildOwnerAnalytics(choose({ Royal: 3, Mystic: 4, Military: 7, Townsfolk: 8, Peasant: 10, Titan: 3 }), analytics).pyramid;
-  assert.equal(multiple.completed, 2);
-  assert.equal(multiple.nextTarget, 3);
-  assert.deepEqual(multiple.tiers.map(tier => tier.missingForNext), [0, 2, 2, 4, 5]);
-  assert.equal(multiple.totalMissingForNext, 13);
+  assert.equal(multiple.completed, 3);
+  assert.equal(multiple.nextTarget, 4);
+  assert.deepEqual(multiple.tiers.map(tier => tier.missingForNext), [1, 0, 0, 0, 0]);
+  assert.equal(multiple.totalMissingForNext, 1);
   assert.equal(multiple.titanCount, 3);
-  assert.equal(multiple.requiredPerPyramid, 15);
-  assert.equal(multiple.ruleVersion, '1.0.0');
+  assert.equal(multiple.requiredPerPyramid, 5);
+  assert.equal(multiple.ruleVersion, '2.0.0');
   assert.equal(analytics.indexes.pyramid.rule.enhancedVersion, null);
+
+  const legacyIndexedAnalytics = structuredClone(analytics);
+  legacyIndexedAnalytics.indexes.pyramid.rule.version = '1.0.0';
+  legacyIndexedAnalytics.indexes.pyramid.rule.tiers.forEach((tier, index) => { tier.required = index + 1; });
+  const migrated = buildOwnerAnalytics(choose({ Royal: 1, Mystic: 1, Military: 1, Townsfolk: 1, Peasant: 1 }), legacyIndexedAnalytics).pyramid;
+  assert.equal(migrated.completed, 1);
+  assert.equal(migrated.requiredPerPyramid, 5);
+  assert.equal(migrated.ruleVersion, '2.0.0');
 });
 
 test('serialized indexes reconcile to canonical assets and reject drift', () => {

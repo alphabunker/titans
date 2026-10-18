@@ -957,7 +957,6 @@ function renderTitansPyramid(owner, portfolio) {
     const empty = el('div', undefined, 'pyramid-empty');
     empty.append(el('strong', 'Pyramid progress is temporarily unavailable'), el('span', 'The verified holdings are shown above, but the matching collection analytics could not be loaded.'));
     root.append(empty);
-    $('#pyramid-method').textContent = '';
     return;
   }
   const { pyramid } = owner;
@@ -969,7 +968,6 @@ function renderTitansPyramid(owner, portfolio) {
   next.append(
     el('span', `NEXT ATTAINABLE PYRAMID ${pyramid.nextTarget}`, 'eyebrow'),
     el('strong', `${pyramid.totalMissingForNext.toLocaleString()} ${pyramid.totalMissingForNext === 1 ? 'piece' : 'pieces'} remaining`),
-    el('p', pyramid.totalMissingForNext === 0 ? 'The next pyramid is complete.' : 'Every shortage below is calculated against the next whole pyramid.'),
   );
   const nextPyramidProgress = pyramid.requiredPerPyramid - pyramid.totalMissingForNext;
   const progress = el('div', undefined, 'pyramid-progress');
@@ -989,14 +987,15 @@ function renderTitansPyramid(owner, portfolio) {
     button.type = 'button';
     button.style.setProperty('--rank', String(index + 1));
     button.setAttribute('aria-label', `${tier.classValue}: ${tier.owned} owned, ${tier.required} required per pyramid, ${tier.missingForNext} needed for Pyramid ${pyramid.nextTarget}`);
-    const mark = el('span', tier.classValue.slice(0, 1), 'pyramid-tier-mark');
+    const mark = el('img', undefined, 'pyramid-tier-mark');
+    mark.src = `src/assets/classes/${tier.classValue.toLowerCase()}-white.webp`;
+    mark.alt = '';
     mark.setAttribute('aria-hidden', 'true');
     const name = el('span', undefined, 'pyramid-tier-name');
     name.append(el('strong', tier.classValue), el('small', `${tier.required} per pyramid`));
     const owned = el('span', undefined, 'pyramid-tier-owned');
     owned.append(el('strong', tier.owned.toLocaleString()), el('small', 'owned'));
-    const shortage = el('span', tier.missingForNext ? `Need ${tier.missingForNext}` : 'Ready', `pyramid-tier-shortage${tier.missingForNext ? '' : ' is-ready'}`);
-    button.append(mark, name, owned, shortage);
+    button.append(mark, name, owned);
     button.onclick = () => showPyramidDetail(tier, button, pyramid.nextTarget);
     ranks.append(button);
   });
@@ -1010,13 +1009,17 @@ function renderTitansPyramid(owner, portfolio) {
     matchingOwnedIndexes: pyramid.titanOwnedIndexes,
     matchingCollectionIndexes: pyramid.titanCollectionIndexes,
   };
-  titanBox.append(el('span', 'T', 'pyramid-titan-mark'), el('strong', pyramid.titanCount.toLocaleString()), el('span', 'Titan class owned'), el('small', 'Tracked separately · not part of the pyramid'));
+  const titanMark = el('img', undefined, 'pyramid-titan-mark');
+  titanMark.src = 'src/assets/classes/titan-white.webp';
+  titanMark.alt = '';
+  titanMark.setAttribute('aria-hidden', 'true');
+  titanBox.append(titanMark, el('strong', pyramid.titanCount.toLocaleString()), el('span', 'Titan class owned'), el('small', 'Tracked separately · not part of the pyramid'));
   titanBox.onclick = () => showPyramidDetail(titanTier, titanBox, pyramid.nextTarget);
+  summary.append(titanBox);
   const right = el('div', undefined, 'pyramid-visual');
-  right.append(ranks, titanBox);
+  right.append(ranks);
   layout.append(summary, right);
   root.append(layout);
-  $('#pyramid-method').textContent = `Rule ${pyramid.ruleVersion}: 1 Royal, 2 Mystics, 3 Military, 4 Townsfolk, and 5 Peasants per pyramid. Completion is the limiting whole-number quotient across the five ranks${portfolio.status === 'partial' ? ' · based on partial holdings' : ''}.`;
 }
 
 function renderUnexpectedPairings(owner, portfolio) {

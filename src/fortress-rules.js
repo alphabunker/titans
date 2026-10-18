@@ -1,13 +1,13 @@
-export const FORTRESS_RULES_VERSION = '1.2.0';
+export const FORTRESS_RULES_VERSION = '1.3.0';
 
 export const PYRAMID_RULE = Object.freeze({
-  version: '1.0.0',
+  version: '2.0.0',
   tiers: Object.freeze([
     Object.freeze({ classValue: 'Royal', required: 1 }),
-    Object.freeze({ classValue: 'Mystic', required: 2 }),
-    Object.freeze({ classValue: 'Military', required: 3 }),
-    Object.freeze({ classValue: 'Townsfolk', required: 4 }),
-    Object.freeze({ classValue: 'Peasant', required: 5 }),
+    Object.freeze({ classValue: 'Mystic', required: 1 }),
+    Object.freeze({ classValue: 'Military', required: 1 }),
+    Object.freeze({ classValue: 'Townsfolk', required: 1 }),
+    Object.freeze({ classValue: 'Peasant', required: 1 }),
   ]),
   excludedClass: 'Titan',
   enhancedVersion: null,
