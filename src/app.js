@@ -978,7 +978,7 @@ function renderTitansPyramid(owner, portfolio) {
     mark.alt = '';
     mark.setAttribute('aria-hidden', 'true');
     const name = el('span', undefined, 'pyramid-tier-name');
-    name.append(el('strong', tier.classValue), el('small', `${tier.required} per pyramid`));
+    name.append(el('strong', tier.classValue));
     const owned = el('span', undefined, 'pyramid-tier-owned');
     owned.append(el('strong', tier.owned.toLocaleString()), el('small', 'owned'));
     button.append(mark, name, owned);
@@ -999,7 +999,7 @@ function renderTitansPyramid(owner, portfolio) {
   titanMark.src = 'src/assets/classes/titan-white.webp';
   titanMark.alt = '';
   titanMark.setAttribute('aria-hidden', 'true');
-  titanBox.append(titanMark, el('strong', pyramid.titanCount.toLocaleString()), el('span', 'Titan class owned'), el('small', 'Tracked separately · not part of the pyramid'));
+  titanBox.append(titanMark, el('strong', pyramid.titanCount.toLocaleString()), el('span', 'Titan class owned'));
   titanBox.onclick = () => showPyramidDetail(titanTier, titanBox, pyramid.nextTarget);
   summary.append(titanBox);
   const right = el('div', undefined, 'pyramid-visual');
