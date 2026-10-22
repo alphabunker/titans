@@ -867,10 +867,12 @@ function renderRareDetails(owner, portfolio) {
   }
   const bandOrder = ['legendary', 'epic', 'rare', 'uncommon', 'common'];
   let showAll = false;
+  let ownershipView = 'missing';
   let visibleCount = 36;
   const renderDetails = () => {
     const activeBands = showAll ? bandOrder : bandOrder.slice(0, 3);
     const details = activeBands.flatMap(band => owner.rareDetails.bands[band]?.details ?? []);
+    const visibleDetails = details.filter(detail => ownershipView === 'all' || (ownershipView === 'owned' ? detail.owned : !detail.owned));
     const represented = details.filter(detail => detail.owned).length;
     const controls = el('div', undefined, 'rare-details-controls');
     const legend = el('div', undefined, 'rarity-legend');
@@ -879,7 +881,24 @@ function renderRareDetails(owner, portfolio) {
       const pill = el('span', `${band.label} ${band.details.length}`, `rarity-pill is-${band.id}`);
       legend.append(pill);
     }
-    const toggle = el('button', showAll ? 'Show rare details' : 'Show all traits', 'rare-details-toggle');
+    const actions = el('div', undefined, 'rare-details-actions');
+    const ownershipFilters = el('div', undefined, 'rare-details-filters');
+    ownershipFilters.setAttribute('role', 'group');
+    ownershipFilters.setAttribute('aria-label', 'Filter archive entries');
+    for (const [value, label] of [['missing', 'Missing'], ['owned', 'Owned'], ['all', 'All']]) {
+      const filter = el('button', label);
+      filter.type = 'button';
+      filter.dataset.view = value;
+      filter.setAttribute('aria-pressed', String(ownershipView === value));
+      filter.onclick = () => {
+        ownershipView = value;
+        visibleCount = 36;
+        renderDetails();
+        root.querySelector(`[data-view="${value}"]`)?.focus();
+      };
+      ownershipFilters.append(filter);
+    }
+    const toggle = el('button', showAll ? 'Return to rare records' : 'Open full archive', 'rare-details-toggle');
     toggle.type = 'button';
     toggle.setAttribute('aria-expanded', String(showAll));
     toggle.onclick = () => {
@@ -888,38 +907,38 @@ function renderRareDetails(owner, portfolio) {
       renderDetails();
       root.querySelector('.rare-details-toggle')?.focus();
     };
-    controls.append(legend, toggle);
+    actions.append(ownershipFilters, toggle);
+    controls.append(legend, actions);
     const summary = el('div', undefined, 'rare-details-summary');
     summary.append(
-      el('strong', `${represented.toLocaleString()} represented`),
-      el('span', `${(details.length - represented).toLocaleString()} still to collect · ${details.length.toLocaleString()} ${showAll ? 'supported traits' : 'traits under 6%'}`),
+      el('strong', `${visibleDetails.length.toLocaleString()} ${ownershipView === 'missing' ? 'missing' : ownershipView === 'owned' ? 'held' : 'archive'} ${visibleDetails.length === 1 ? 'entry' : 'entries'}`),
+      el('span', `${represented.toLocaleString()} represented · ${(details.length - represented).toLocaleString()} still to collect · ${showAll ? 'full archive' : 'rare records'}`),
     );
     const grid = el('div', undefined, 'rare-details-grid');
-    for (const detail of details.slice(0, visibleCount)) {
-      const representative = itemAtAnalyticsIndex(detail.representativeIndex);
-      if (!representative) continue;
-      const card = el('article', undefined, `rare-detail-card is-${detail.band}${detail.owned ? ' is-owned' : ' is-missing'}`);
-      const visual = el('div', undefined, 'rare-detail-visual');
-      visual.append(art(representative));
-      const body = el('div', undefined, 'rare-detail-card-body');
+    for (const [index, detail] of visibleDetails.slice(0, visibleCount).entries()) {
+      const card = el('article', undefined, `rare-detail-entry is-${detail.band}${detail.owned ? ' is-owned' : ' is-missing'}`);
       const top = el('div', undefined, 'rare-detail-card-top');
-      top.append(el('span', detail.category.toUpperCase(), 'eyebrow'), el('span', detail.bandLabel, `rarity-label is-${detail.band}`));
-      body.append(
+      top.append(el('span', `ARCHIVE ${String(index + 1).padStart(2, '0')} · ${detail.category.toUpperCase()}`, 'rare-detail-index'), el('span', detail.bandLabel, `rarity-label is-${detail.band}`));
+      const ledger = el('dl', undefined, 'rare-detail-ledger');
+      const collectionRecord = el('div');
+      collectionRecord.append(el('dt', 'IN THE HOUSE'), el('dd', `${detail.collectionCount.toLocaleString()} / 6,500 · ${detail.collectionPercentage.toFixed(2)}%`));
+      const ownerRecord = el('div');
+      ownerRecord.append(el('dt', 'IN YOUR VAULT'), el('dd', detail.owned ? `${detail.ownedCount.toLocaleString()} held` : 'Missing', detail.owned ? 'is-owned' : 'is-missing'));
+      ledger.append(collectionRecord, ownerRecord);
+      card.append(
         top,
         el('h3', detail.value),
-        el('p', `${detail.collectionCount.toLocaleString()} of 6,500 · ${detail.collectionPercentage.toFixed(2)}%`, 'rare-detail-frequency'),
-        el('strong', detail.owned ? `${detail.ownedCount.toLocaleString()} in your collection · ${detail.ownedPercentage.toFixed(2)}%` : 'Still to collect', `rare-detail-state${detail.owned ? ' is-owned' : ''}`),
+        ledger,
       );
-      const open = el('button', detail.owned ? 'Explore this detail' : 'Meet matching Titans', 'rare-detail-open');
+      const open = el('button', 'Open archive entry', 'rare-detail-open');
       open.type = 'button';
       open.onclick = () => showRareDetail(detail, open);
-      body.append(open);
-      card.append(visual, body);
+      card.append(open);
       grid.append(card);
     }
     const children = [controls, summary, grid];
-    if (visibleCount < details.length) {
-      const more = el('button', `Show ${Math.min(36, details.length - visibleCount).toLocaleString()} more traits`, 'rare-details-more');
+    if (visibleCount < visibleDetails.length) {
+      const more = el('button', `Open ${Math.min(36, visibleDetails.length - visibleCount).toLocaleString()} more records`, 'rare-details-more');
       more.type = 'button';
       more.onclick = () => {
         visibleCount += 36;
