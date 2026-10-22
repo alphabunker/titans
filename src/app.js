@@ -867,18 +867,31 @@ function renderRareDetails(owner, portfolio) {
   }
   const bandOrder = ['legendary', 'epic', 'rare', 'uncommon', 'common'];
   let showAll = false;
+  let activeBand = null;
   let ownershipView = 'missing';
   let visibleCount = 36;
   const renderDetails = () => {
-    const activeBands = showAll ? bandOrder : bandOrder.slice(0, 3);
+    const activeBands = activeBand ? [activeBand] : showAll ? bandOrder : bandOrder.slice(0, 3);
     const details = activeBands.flatMap(band => owner.rareDetails.bands[band]?.details ?? []);
     const visibleDetails = details.filter(detail => ownershipView === 'all' || (ownershipView === 'owned' ? detail.owned : !detail.owned));
     const represented = details.filter(detail => detail.owned).length;
     const controls = el('div', undefined, 'rare-details-controls');
     const legend = el('div', undefined, 'rarity-legend');
+    legend.setAttribute('role', 'group');
+    legend.setAttribute('aria-label', 'Filter by rarity');
     for (const bandId of bandOrder) {
       const band = owner.rareDetails.bands[bandId];
-      const pill = el('span', `${band.label} ${band.details.length}`, `rarity-pill is-${band.id}`);
+      const pill = el('button', `${band.label} ${band.details.length}`, `rarity-pill is-${band.id}`);
+      pill.type = 'button';
+      pill.dataset.band = bandId;
+      pill.setAttribute('aria-pressed', String(activeBand === bandId));
+      pill.setAttribute('aria-label', `${band.label}: show ${band.details.length.toLocaleString()} traits`);
+      pill.onclick = () => {
+        activeBand = activeBand === bandId ? null : bandId;
+        visibleCount = 36;
+        renderDetails();
+        root.querySelector(`[data-band="${bandId}"]`)?.focus();
+      };
       legend.append(pill);
     }
     const actions = el('div', undefined, 'rare-details-actions');
@@ -903,6 +916,7 @@ function renderRareDetails(owner, portfolio) {
     toggle.setAttribute('aria-expanded', String(showAll));
     toggle.onclick = () => {
       showAll = !showAll;
+      activeBand = null;
       visibleCount = 36;
       renderDetails();
       root.querySelector('.rare-details-toggle')?.focus();
@@ -912,7 +926,7 @@ function renderRareDetails(owner, portfolio) {
     const summary = el('div', undefined, 'rare-details-summary');
     summary.append(
       el('strong', `${visibleDetails.length.toLocaleString()} ${ownershipView === 'missing' ? 'missing' : ownershipView === 'owned' ? 'held' : 'archive'} ${visibleDetails.length === 1 ? 'entry' : 'entries'}`),
-      el('span', `${represented.toLocaleString()} represented · ${(details.length - represented).toLocaleString()} still to collect · ${showAll ? 'full archive' : 'rare records'}`),
+      el('span', `${represented.toLocaleString()} represented · ${(details.length - represented).toLocaleString()} still to collect · ${activeBand ? `${owner.rareDetails.bands[activeBand].label} records` : showAll ? 'full archive' : 'rare records'}`),
     );
     const grid = el('div', undefined, 'rare-details-grid');
     for (const [index, detail] of visibleDetails.slice(0, visibleCount).entries()) {
