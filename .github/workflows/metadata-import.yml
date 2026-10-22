@@ -1,0 +1,106 @@
+name: Metadata import
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Publication environment
+        required: true
+        default: preview
+        type: choice
+        options: [preview, production]
+      mode:
+        description: Import mode
+        required: true
+        default: manual
+        type: choice
+        options: [manual, bootstrap, incremental]
+  schedule:
+    - cron: "17 7 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: house-of-titans-metadata-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: ${{ inputs.target || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run check
+      - run: npm test
+      - name: Import candidate snapshot
+        env:
+          KOIOS_API_URL: https://api.koios.rest/api/v1
+          KOIOS_API_TOKEN: ${{ secrets.KOIOS_API_TOKEN }}
+          IMPORT_MODE: ${{ inputs.mode || 'incremental' }}
+        run: npm run import:collection -- --mode "$IMPORT_MODE" --output .data/import
+      - name: Generate and validate analytics
+        run: npm run analytics -- --input .data/import/collection.candidate.json --output .data/import/analytics.json
+      - name: Download active pointer when one exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
+        run: |
+          mkdir -p .data/previous
+          npx --yes wrangler@4.151.1 r2 object get "$R2_BUCKET/latest.json" --file .data/previous/latest.json --remote || true
+      - name: Prepare atomic publication
+        run: |
+          if [ -f .data/previous/latest.json ]; then
+            npm run prepare:publication -- --input .data/import --output .data/publication --previous-pointer .data/previous/latest.json
+          else
+            npm run prepare:publication -- --input .data/import --output .data/publication
+          fi
+      - name: Export current D1 recovery copy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE: ${{ vars.CLOUDFLARE_D1_DATABASE }}
+        run: npx --yes wrangler@4.151.1 d1 export "$D1_DATABASE" --remote --output .data/d1-before-publication.sql -y
+      - name: Apply canonical rows before activation
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE: ${{ vars.CLOUDFLARE_D1_DATABASE }}
+        run: npx --yes wrangler@4.151.1 d1 execute "$D1_DATABASE" --remote --file .data/publication/d1/canonical.sql
+      - name: Upload immutable R2 objects
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
+        run: |
+          backup_key="exports/d1/$(date -u +%Y-%m-%dT%H-%M-%SZ)-before-publication.sql"
+          npx --yes wrangler@4.151.1 r2 object put "$R2_BUCKET/$backup_key" --file .data/d1-before-publication.sql --remote
+          find .data/publication/r2 -type f ! -name latest.json -print0 | while IFS= read -r -d '' file; do
+            key="${file#.data/publication/r2/}"
+            npx --yes wrangler@4.151.1 r2 object put "$R2_BUCKET/$key" --file "$file" --remote
+          done
+      - name: Activate R2 pointer last
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
+        run: npx --yes wrangler@4.151.1 r2 object put "$R2_BUCKET/latest.json" --file .data/publication/r2/latest.json --remote
+      - name: Reconcile D1 active pointer
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE: ${{ vars.CLOUDFLARE_D1_DATABASE }}
+        run: npx --yes wrangler@4.151.1 d1 execute "$D1_DATABASE" --remote --file .data/publication/d1/activate.sql
+      - name: Retain candidate and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metadata-import-${{ github.run_id }}
+          path: .data/import
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "titans-preview",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-10-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "titans-metadata-preview",
+      "database_id": "5d30a9bb-8366-4690-af80-e9c1790e455e",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "SNAPSHOTS",
+      "bucket_name": "titans-snapshots-preview"
+    }
+  ]
+}

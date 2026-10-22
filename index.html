@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore all 6,500 House of Titans NFTs and inspect a Cardano portfolio using verified metadata.">
+  <meta name="titans-ipfs-gateway" content="gateway.pinata.cloud">
+  <title>House of Titans · Collection Insights</title>
+  <link rel="stylesheet" href="/src/style.css">
+  <script type="module" src="/src/app.js"></script>
+</head>
+<body>
+  <header>
+    <a class="brand" href="#collection" aria-label="House of Titans collection">
+      <img class="brand-logo" src="/src/assets/house-of-titans-logo.png" width="50" height="50" alt="">
+      <span>HOUSE OF TITANS<small>COLLECTION EXPLORER</small></span>
+    </a>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="#collection" data-view-link="collection" aria-current="page">The Collection</a>
+      <a href="#fortress" data-view-link="fortress">The Fortress</a>
+    </nav>
+    <span class="network">● CARDANO</span>
+  </header>
+
+  <main>
+    <div id="collection-page" class="page-view">
+      <section class="intro">
+        <div><h1>Discover your<br><em>Titans.</em></h1><p>A closer look at the collection. Explore, filter,<br class="desktop"> and find the details that make each Titan unique.</p></div>
+        <div class="seal" aria-hidden="true">T<span>HOUSE OF TITANS</span></div>
+      </section>
+      <section class="stats" aria-label="Collection summary">
+        <div><span>TITANS</span><strong id="total">—</strong></div>
+        <div><span>PERCENT OF THE 6500 COLLECTION</span><strong id="collection-percentage">—</strong></div>
+        <div><span>CLASSES REPRESENTED</span><strong id="class-total">—</strong></div>
+      </section>
+      <section class="collection" aria-labelledby="collection-title">
+        <div class="section-heading"><h2 id="collection-title">Collection explorer</h2><span class="muted">A new perspective on your collection</span></div>
+        <div id="data-status" class="data-status is-loading" role="status" aria-live="polite"><strong>LOADING COLLECTION</strong><span>Validating the active Titan snapshot…</span></div>
+        <div class="toolbar">
+          <label class="search"><span class="sr-only">Search Titans</span><input id="search" type="search" placeholder="Search by name or number…"></label>
+          <label><span class="sr-only">Sort items</span><select id="sort"><option value="asc">Number: low to high</option><option value="desc">Number: high to low</option></select></label>
+          <div class="views" role="group" aria-label="Collection view"><button id="grid-view" aria-pressed="true">Grid</button><button id="table-view" aria-pressed="false">Table</button></div>
+        </div>
+        <div class="workspace">
+          <aside>
+            <div class="filter-title"><div><h3>Filters</h3><span id="active-count">None active</span></div><button id="reset" class="text-button">Reset</button></div>
+            <label class="favorite-filter"><input type="checkbox" id="favorites-only"> Saved items</label><div id="filters"></div>
+          </aside>
+          <div class="results"><div class="result-line"><span id="count" role="status" aria-live="polite"></span><span id="snapshot-label">ACTIVE SNAPSHOT</span></div><div id="items"></div></div>
+        </div>
+      </section>
+    </div>
+
+    <div id="fortress-page" class="page-view fortress-page" hidden>
+      <section class="fortress-hero">
+        <div class="fortress-hero-copy">
+          <span class="titan-rail" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+          <h1><span id="fortress-title-prefix">Enter the</span><strong>Fortress</strong></h1>
+          <p>Beyond the gates, your Titans tell a deeper story—rare details, unexpected alliances, and the shape of your collection revealed.</p>
+        </div>
+        <figure class="fortress-art">
+          <img src="/src/assets/house-of-titans-fortress-v1.webp" width="1672" height="941" alt="A monumental purple-lit House of Titans fortress rising from a mountain valley." decoding="async" fetchpriority="high">
+        </figure>
+      </section>
+      <section id="fortress-entry" class="fortress-entry" aria-label="Enter the Fortress">
+        <div class="entry-grid">
+          <article class="entry-card">
+            <div class="entry-copy"><h3>Connect a wallet</h3><p>Present your wallet at the gate. The sentries read only its public address—nothing is signed or spent.</p></div>
+            <div id="wallet-list" class="wallet-list" aria-live="polite"></div>
+            <button id="scan-wallets" class="secondary-action" type="button">Check for wallets</button>
+          </article>
+          <article class="entry-card">
+            <div class="entry-copy"><h3>Analyze an address</h3><p>Know the coordinates? Enter a public Cardano address and let the Fortress summon the Titans held there.</p></div>
+            <form id="address-form" novalidate>
+              <label for="portfolio-address">Cardano address</label>
+              <textarea id="portfolio-address" name="address" rows="3" autocomplete="off" spellcheck="false" placeholder="stake1… or addr1…" required></textarea>
+              <button class="primary-action" type="submit">Enter the Fortress <span aria-hidden="true">→</span></button>
+            </form>
+          </article>
+        </div>
+      </section>
+      <section id="fortress-status" class="fortress-status" role="status" aria-live="polite" hidden></section>
+      <section id="portfolio-result" class="portfolio-result" aria-label="Portfolio results" hidden>
+        <div class="portfolio-result-head">
+          <div class="eyebrow" id="portfolio-source">PORTFOLIO</div>
+          <div class="portfolio-actions"><button id="refresh-portfolio" class="secondary-action" type="button">Refresh</button><button id="clear-portfolio" class="text-button" type="button">Disconnect</button></div>
+        </div>
+        <div class="portfolio-overview">
+          <div><span>TITANS</span><strong id="portfolio-count">0</strong></div>
+          <div><span>PERCENT OF THE 6500 COLLECTION</span><strong id="portfolio-percentage">0.00%</strong></div>
+          <div><span>CLASSES REPRESENTED</span><strong id="portfolio-classes">0/6</strong></div>
+        </div>
+        <section id="collection-character" class="collection-character" aria-labelledby="character-title" hidden>
+          <div class="character-heading"><h2 id="character-title">Your Titans are one of a kind</h2></div>
+          <div id="character-content"></div>
+        </section>
+        <section id="unexpected-pairings" class="unexpected-pairings" aria-labelledby="pairings-title" hidden>
+          <div class="pairings-heading"><div><h2 id="pairings-title">Rare <em>alliances.</em></h2></div><p>When uncommon traits meet, the Fortress takes notice.</p></div>
+          <div id="pairings-content"></div>
+        </section>
+        <section id="titans-pyramid" class="titans-pyramid" aria-labelledby="pyramid-title" hidden>
+          <div class="pyramid-heading"><h2 id="pyramid-title">Rise through the <em>ranks.</em></h2></div>
+          <div id="pyramid-content"></div>
+        </section>
+        <section id="rare-details" class="rare-details" aria-labelledby="rare-details-title" hidden>
+          <div class="rare-details-heading"><div><div class="eyebrow">FORTRESS ARCHIVES</div><h2 id="rare-details-title">The vault is <em>not yet complete.</em></h2></div><p>Search the House records for the rare details held within your collection—and those still beyond its walls.</p></div>
+          <div id="rare-details-content"></div>
+          <p class="rare-details-method" id="rare-details-method"></p>
+        </section>
+        <section id="mini-collections" class="mini-collections" aria-labelledby="mini-collections-title" hidden>
+          <div class="mini-collections-heading"><div><div class="eyebrow">NINE COLLECTIONS</div><h2 id="mini-collections-title">A collection <em>within the collection.</em></h2></div><p>Nine original House of Titans themes, defined entirely by verified on-chain traits.</p></div>
+          <div id="mini-collections-content"></div>
+        </section>
+      </section>
+    </div>
+
+    <footer><span>HOUSE OF TITANS</span><a href="https://www.wayup.io/collection/53d6297f4ede5cd3bfed7281b73fad3dac8dc86a950f7454d84c16ad" target="_blank" rel="noopener noreferrer">Collection on Wayup ↗</a></footer>
+  </main>
+  <dialog id="detail" aria-labelledby="detail-title"><button class="close" id="close-detail" aria-label="Close details">×</button><div id="detail-content"></div></dialog>
+  <dialog id="character-detail" class="character-dialog" aria-labelledby="character-detail-title"><button class="close" id="close-character-detail" aria-label="Close matching Titans">×</button><div id="character-detail-content"></div></dialog>
+  <dialog id="pairing-detail" class="pairing-dialog" aria-labelledby="pairing-detail-title"><button class="close" id="close-pairing-detail" aria-label="Close pairing explorer">×</button><div id="pairing-detail-content"></div></dialog>
+  <dialog id="pyramid-detail" class="pyramid-dialog" aria-labelledby="pyramid-detail-title"><button class="close" id="close-pyramid-detail" aria-label="Close pyramid rank explorer">×</button><div id="pyramid-detail-content"></div></dialog>
+  <dialog id="rare-detail-dialog" class="rare-detail-dialog" aria-labelledby="rare-detail-dialog-title"><button class="close" id="close-rare-detail" aria-label="Close rare detail explorer">×</button><div id="rare-detail-dialog-content"></div></dialog>
+  <dialog id="mini-collection-dialog" class="mini-collection-dialog" aria-labelledby="mini-collection-dialog-title"><button class="close" id="close-mini-collection" aria-label="Close mini-collection explorer">×</button><div id="mini-collection-dialog-content"></div></dialog>
+</body>
+</html>

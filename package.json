@@ -1,0 +1,19 @@
+{
+  "name": "titans-insights",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build-site.mjs",
+    "analytics": "node scripts/generate-analytics.mjs",
+    "prepare:analytics-release": "node scripts/prepare-analytics-release.mjs",
+    "scan:secrets": "node scripts/scan-secrets.mjs",
+    "benchmark:analytics": "node scripts/benchmark-analytics.mjs",
+    "import:collection": "node scripts/import-collection.mjs",
+    "prepare:publication": "node scripts/prepare-publication.mjs",
+    "validate:images": "node scripts/validate-images.mjs",
+    "validate:public-snapshot": "node scripts/validate-public-snapshot.mjs",
+    "test": "node --test",
+    "check": "node --check functions/api/analytics.js && node --check functions/api/collection.js && node --check functions/api/health.js && node --check functions/api/portfolio.js && node --check scripts/benchmark-analytics.mjs && node --check scripts/build-site.mjs && node --check scripts/generate-analytics.mjs && node --check scripts/import-collection.mjs && node --check scripts/prepare-analytics-release.mjs && node --check scripts/prepare-publication.mjs && node --check scripts/scan-secrets.mjs && node --check scripts/serve.mjs && node --check scripts/validate-images.mjs && node --check scripts/validate-public-snapshot.mjs && node --check src/analytics.js && node --check src/app.js && node --check src/cardano-address.js && node --check src/contracts.js && node --check src/data.js && node --check src/explorer.js && node --check src/fortress-entry.js && node --check src/fortress-rules.js && node --check src/importer.js && node --check src/media.js && node --check src/metadata-normalizer.js && node --check src/portfolio.js && node --check src/providers/blockfrost.js && node --check src/providers/koios.js && node --check src/public-snapshot.js && node --check src/storage/d1-repository.js && node --check src/storage/r2-snapshot-store.js && node --check src/trait-catalog.js"
+  }
+}
