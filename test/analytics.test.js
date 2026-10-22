@@ -173,6 +173,27 @@ test('unexpected pairings rank deterministically and reconcile complete and owne
   assert.ok(owner.pairings.highlights.every(highlight => highlight.matchingOwnedIndexes.length === highlight.ownedCount));
 });
 
+test('owner highlights and pairings exclude Background traits', () => {
+  const featured = [
+    makeAsset(210, { Class: 'Royal', Background: 'Blue', Eyes: 'Gold', Skin: 'Human' }),
+    makeAsset(211, { Class: 'Royal', Background: 'Blue', Eyes: 'Gold', Skin: 'Alien' }),
+    makeAsset(212, { Class: 'Mystic', Background: 'Red', Eyes: 'Green', Skin: 'Stone' }),
+  ];
+  const fillers = Array.from({ length: 97 }, (_, index) => makeAsset(500 + index, {
+    Class: `Filler ${index}`,
+    Background: `Backdrop ${index}`,
+    Eyes: `Eyes ${index}`,
+    Skin: `Skin ${index}`,
+  }));
+  const analytics = buildCollectionAnalytics({ ...snapshot, assets: [...featured, ...fillers] });
+  const owner = buildOwnerAnalytics(featured.map(asset => asset.assetId), analytics);
+
+  assert.ok(owner.character.highlights.length > 0);
+  assert.ok(owner.character.highlights.every(highlight => highlight.category !== 'Background'));
+  assert.ok(owner.pairings.highlights.length > 0);
+  assert.ok(owner.pairings.highlights.every(highlight => highlight.left.category !== 'Background' && highlight.right.category !== 'Background'));
+});
+
 test('collection character applies minimum evidence, lift, representative, and deterministic ranking rules', () => {
   const analytics = buildCollectionAnalytics(snapshot);
   const owner = buildOwnerAnalytics([assets[0].assetId, assets[1].assetId, assets[3].assetId], analytics);

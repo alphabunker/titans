@@ -6,6 +6,7 @@ const KEY_SEPARATOR = '\u001f';
 const traitKey = trait => `${trait.normalizedCategory}${KEY_SEPARATOR}${trait.normalizedValue}`;
 const pairKey = (left, right) => [left, right].sort().join(`${KEY_SEPARATOR}${KEY_SEPARATOR}`);
 const PLACEHOLDER_FEATURE_EXCLUSIONS = Object.freeze(['collection-character', 'unexpected-pairings']);
+const OWNER_FEATURE_CATEGORY_EXCLUSIONS = new Set(['background']);
 
 const percentage = (count, total) => total ? Number(((count / total) * 100).toFixed(6)) : 0;
 
@@ -189,7 +190,9 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
   const characterHighlights = lowEvidence ? [] : Object.entries(analytics.traitFrequencies)
     .flatMap(([key, frequency]) => {
       const ownedCount = traitCounts[key] ?? 0;
-      if (ownedCount < characterMinimum || frequency.placeholderLike || frequency.featureExclusions.includes('collection-character')) return [];
+      if (ownedCount < characterMinimum || frequency.placeholderLike
+        || OWNER_FEATURE_CATEGORY_EXCLUSIONS.has(frequency.normalizedCategory)
+        || frequency.featureExclusions.includes('collection-character')) return [];
       const matchingOwnedIndexes = (analytics.indexes.byTrait[key] ?? []).filter(index => ownedIndexes.has(index));
       const ownerShare = ownedCount / ownedIndexes.size;
       const collectionShare = frequency.count / analytics.assetCount;
@@ -218,7 +221,10 @@ export function buildOwnerAnalytics(ownedAssetIds, analytics) {
   const pairCounts = {};
   for (const index of ownedIndexes) {
     const pairable = analytics.indexes.traitsByAsset[index]
-      .filter(key => !analytics.traitFrequencies[key].placeholderLike);
+      .filter(key => {
+        const frequency = analytics.traitFrequencies[key];
+        return !frequency.placeholderLike && !OWNER_FEATURE_CATEGORY_EXCLUSIONS.has(frequency.normalizedCategory);
+      });
     for (let leftIndex = 0; leftIndex < pairable.length; leftIndex += 1) {
       for (let rightIndex = leftIndex + 1; rightIndex < pairable.length; rightIndex += 1) {
         const left = pairable[leftIndex];

@@ -795,10 +795,11 @@ function renderPortfolio(session, portfolio) {
   $('#portfolio-source').textContent = session.kind === 'wallet' ? `${session.label.toUpperCase()} · CONNECTED WALLET` : 'MANUALLY ENTERED ADDRESS';
   $('#portfolio-count').textContent = canonicalOwned.toLocaleString();
   $('#portfolio-percentage').textContent = owner ? `${owner.summary.collectionPercentage.toFixed(owner.summary.percentagePrecision)}%` : `${((canonicalOwned / 6500) * 100).toFixed(2)}%`;
-  $('#portfolio-classes').textContent = owner ? owner.summary.classesRepresented.toLocaleString() : new Set(portfolio.assetIds.flatMap(assetId => {
+  const representedClasses = owner ? owner.summary.classesRepresented : new Set(portfolio.assetIds.flatMap(assetId => {
     const value = items.find(item => item.id === assetId)?.traits.Class;
     return value ? [value] : [];
-  })).size.toLocaleString();
+  })).size;
+  $('#portfolio-classes').textContent = `${representedClasses.toLocaleString()}/6`;
   $('#clear-portfolio').textContent = 'Disconnect';
   renderCollectionCharacter(owner);
   renderUnexpectedPairings(owner, portfolio);
@@ -1016,7 +1017,6 @@ function renderUnexpectedPairings(owner, portfolio) {
     const empty = el('div', undefined, 'pairings-empty');
     empty.append(el('strong', 'Unexpected pairings are temporarily unavailable'), el('span', 'The verified holdings are shown above, but the matching collection analytics could not be loaded.'));
     root.append(empty);
-    $('#pairings-method').textContent = '';
     return;
   }
   if (!owner.summary.titans) {
@@ -1042,7 +1042,7 @@ function renderUnexpectedPairings(owner, portfolio) {
         el('h3', representative.name),
         traits,
         el('strong', `${pairing.collectionCount.toLocaleString()} Titans share this pairing`, 'pairing-support'),
-        el('p', `${pairing.ownedCount.toLocaleString()} ${pairing.ownedCount === 1 ? 'is' : 'are'} yours · ${pairing.lift.toFixed(2)}× owner lift`, 'muted'),
+        el('p', `${pairing.collectionCount.toLocaleString()} of 6,500`, 'muted'),
       );
       const open = el('button', 'Meet the pairing', 'pairing-open');
       open.type = 'button';
@@ -1053,7 +1053,6 @@ function renderUnexpectedPairings(owner, portfolio) {
     }
     root.append(grid);
   }
-  $('#pairings-method').textContent = `Rules ${owner.pairings.ruleVersion} rank pairings by owner lift and collection scarcity. Eligible pairs occur on 2 or more Titans, cover no more than ${owner.pairings.maximumCollectionPercentage}% of the collection, and have at least ${owner.pairings.minimumLift.toFixed(2)}× lift${portfolio.status === 'partial' ? ' · based on partial holdings' : ''}.`;
 }
 
 function renderCollectionCharacter(owner) {
@@ -1094,7 +1093,6 @@ function renderCollectionCharacter(owner) {
       body.append(
         el('span', highlight.category.toUpperCase(), 'eyebrow'),
         el('h3', highlight.value),
-        el('strong', `${highlight.lift.toFixed(2)}× your collection share`, 'character-lift'),
         el('p', `${highlight.ownedCount.toLocaleString()} of your Titans · ${highlight.collectionCount.toLocaleString()} of 6,500`, 'muted'),
       );
       const open = el('button', `View your ${highlight.ownedCount.toLocaleString()} matching ${highlight.ownedCount === 1 ? 'Titan' : 'Titans'}`, 'character-open');
